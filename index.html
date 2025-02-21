@@ -2,26 +2,31 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, minimum-scale=0.5, user-scalable=yes">
     <title>Счетчик времени</title>
-    <!-- Добавляем Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 20px auto;
+            margin: 0;
             padding: 20px;
             background-color: var(--tg-theme-bg-color, #ffffff);
             color: var(--tg-theme-text-color, #000000);
+            height: 100vh;
+            overflow-x: hidden; /* Запрещаем горизонтальную прокрутку */
+            overflow-y: auto; /* Разрешаем вертикальную прокрутку */
+        }
+        .container {
+            text-align: center;
+            max-width: 100%;
+            width: 100%;
+            box-sizing: border-box;
         }
         .tracker {
             border: 1px solid var(--tg-theme-hint-color, #ccc);
             padding: 15px;
             margin-bottom: 15px;
             border-radius: 5px;
-        }
-        .container {
-            text-align: center;
         }
         .input-group {
             margin: 10px 0;
@@ -62,7 +67,8 @@
     <script>
         let trackerCount = 0;
 
-        function addTracker() {
+        // Функция для создания нового трекера
+        function addTracker(text = "Событие началось", startDate = "", endDate = "") {
             trackerCount++;
             const trackerDiv = document.createElement('div');
             trackerDiv.className = 'tracker';
@@ -70,15 +76,15 @@
             
             trackerDiv.innerHTML = `
                 <div class="input-group">
-                    <input type="text" id="text-${trackerCount}" placeholder="Введите свой текст" value="Событие началось">
+                    <input type="text" id="text-${trackerCount}" placeholder="Введите свой текст" value="${text}">
                 </div>
                 <div class="input-group">
                     <label>Дата начала:</label>
-                    <input type="date" id="start-${trackerCount}" onchange="updateTimer(${trackerCount})">
+                    <input type="date" id="start-${trackerCount}" value="${startDate}" onchange="updateTimer(${trackerCount}); saveTrackers()">
                 </div>
                 <div class="input-group">
                     <label>Дата окончания (опционально):</label>
-                    <input type="date" id="end-${trackerCount}" onchange="updateTimer(${trackerCount})">
+                    <input type="date" id="end-${trackerCount}" value="${endDate}" onchange="updateTimer(${trackerCount}); saveTrackers()">
                 </div>
                 <p id="time-${trackerCount}"></p>
                 <div class="progress-bar" id="bar-${trackerCount}">
@@ -90,15 +96,19 @@
             
             document.getElementById('trackers').appendChild(trackerDiv);
             updateTimer(trackerCount);
+            saveTrackers(); // Сохраняем после добавления
         }
 
+        // Удаление трекера
         function removeTracker(id) {
             const tracker = document.getElementById(`tracker-${id}`);
             if (tracker) {
                 tracker.remove();
+                saveTrackers(); // Сохраняем после удаления
             }
         }
 
+        // Расчет оставшегося времени
         function calculateRemainingTime(remainingTime) {
             const remainingDays = Math.ceil(remainingTime / (1000 * 60 * 60 * 24));
             const years = Math.floor(remainingDays / 365);
@@ -114,6 +124,7 @@
             return result.trim();
         }
 
+        // Обновление таймера
         function updateTimer(id) {
             const startDate = new Date(document.getElementById(`start-${id}`).value);
             const endDate = document.getElementById(`end-${id}`).value ? 
@@ -162,6 +173,34 @@
             }
         }
 
+        // Сохранение всех трекеров в localStorage
+        function saveTrackers() {
+            const trackers = [];
+            for (let i = 1; i <= trackerCount; i++) {
+                if (document.getElementById(`tracker-${i}`)) {
+                    const text = document.getElementById(`text-${i}`).value;
+                    const start = document.getElementById(`start-${i}`).value;
+                    const end = document.getElementById(`end-${i}`).value;
+                    trackers.push({ id: i, text, start, end });
+                }
+            }
+            localStorage.setItem('timeTrackers', JSON.stringify(trackers));
+        }
+
+        // Загрузка трекеров из localStorage
+        function loadTrackers() {
+            const savedTrackers = localStorage.getItem('timeTrackers');
+            if (savedTrackers) {
+                const trackers = JSON.parse(savedTrackers);
+                trackers.forEach(tracker => {
+                    addTracker(tracker.text, tracker.start, tracker.end);
+                    if (tracker.id > trackerCount) trackerCount = tracker.id; // Обновляем счетчик
+                });
+            } else {
+                addTracker(); // Добавляем первый трекер, если ничего не сохранено
+            }
+        }
+
         // Инициализация Telegram Web App
         window.Telegram.WebApp.ready();
         window.Telegram.WebApp.expand();
@@ -175,8 +214,8 @@
             }
         }, 1000);
 
-        // Добавляем первый счетчик при загрузке
-        addTracker();
+        // Загружаем сохраненные трекеры при старте
+        loadTrackers();
     </script>
 </body>
 </html>
