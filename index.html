@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Счетчик времени</title>
+    <!-- Добавляем Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+        .tracker {
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        .container {
+            text-align: center;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            height: 20px;
+            border-radius: 10px;
+            margin-top: 10px;
+            display: none;
+        }
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: var(--tg-theme-button-color, #4CAF50);
+            border-radius: 10px;
+            transition: width 0.3s;
+        }
+        button {
+            padding: 5px 10px;
+            margin: 5px;
+            background-color: var(--tg-theme-button-color, #4CAF50);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Счетчики времени</h2>
+        <div id="trackers"></div>
+        <button onclick="addTracker()">Добавить отслеживание</button>
+    </div>
+
+    <script>
+        let trackerCount = 0;
+
+        function addTracker() {
+            trackerCount++;
+            const trackerDiv = document.createElement('div');
+            trackerDiv.className = 'tracker';
+            trackerDiv.id = `tracker-${trackerCount}`;
+            
+            trackerDiv.innerHTML = `
+                <div class="input-group">
+                    <input type="text" id="text-${trackerCount}" placeholder="Введите свой текст" value="Событие началось">
+                </div>
+                <div class="input-group">
+                    <label>Дата начала:</label>
+                    <input type="date" id="start-${trackerCount}" onchange="updateTimer(${trackerCount})">
+                </div>
+                <div class="input-group">
+                    <label>Дата окончания (опционально):</label>
+                    <input type="date" id="end-${trackerCount}" onchange="updateTimer(${trackerCount})">
+                </div>
+                <p id="time-${trackerCount}"></p>
+                <div class="progress-bar" id="bar-${trackerCount}">
+                    <div class="progress" id="progress-${trackerCount}"></div>
+                </div>
+                <p id="progress-text-${trackerCount}"></p>
+                <button onclick="removeTracker(${trackerCount})">Удалить</button>
+            `;
+            
+            document.getElementById('trackers').appendChild(trackerDiv);
+            updateTimer(trackerCount);
+        }
+
+        function removeTracker(id) {
+            const tracker = document.getElementById(`tracker-${id}`);
+            if (tracker) {
+                tracker.remove();
+            }
+        }
+
+        function calculateRemainingTime(remainingTime) {
+            const remainingDays = Math.ceil(remainingTime / (1000 * 60 * 60 * 24));
+            const years = Math.floor(remainingDays / 365);
+            const months = Math.floor((remainingDays % 365) / 30);
+            const weeks = Math.floor((remainingDays % 30) / 7);
+            const days = remainingDays % 7;
+
+            let result = 'Осталось: ';
+            if (years > 0) result += `${years} лет `;
+            if (months > 0) result += `${months} месяцев `;
+            if (weeks > 0) result += `${weeks} недель `;
+            if (days > 0) result += `${days} дней`;
+            return result.trim();
+        }
+
+        function updateTimer(id) {
+            const startDate = new Date(document.getElementById(`start-${id}`).value);
+            const endDate = document.getElementById(`end-${id}`).value ? 
+                new Date(document.getElementById(`end-${id}`).value) : null;
+            const customText = document.getElementById(`text-${id}`).value || 'Событие началось';
+            const now = new Date();
+
+            if (!startDate || isNaN(startDate)) {
+                document.getElementById(`time-${id}`).textContent = 'Выберите дату начала';
+                return;
+            }
+
+            const diffTime = Math.abs(now - startDate);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const years = Math.floor(diffDays / 365);
+            const months = Math.floor((diffDays % 365) / 30);
+            const days = diffDays % 30;
+
+            let timeString = `${customText} `;
+            if (years > 0) timeString += `${years} лет `;
+            if (months > 0) timeString += `${months} месяцев `;
+            if (days > 0) timeString += `${days} дней назад`;
+
+            document.getElementById(`time-${id}`).textContent = timeString;
+
+            const progressBar = document.getElementById(`bar-${id}`);
+            const progressText = document.getElementById(`progress-text-${id}`);
+            
+            if (endDate && !isNaN(endDate) && endDate > startDate) {
+                const totalTime = endDate - startDate;
+                const passedTime = now - startDate;
+                const progress = Math.min((passedTime / totalTime) * 100, 100);
+                
+                progressBar.style.display = 'block';
+                document.getElementById(`progress-${id}`).style.width = `${progress}%`;
+                
+                const remainingTime = endDate - now;
+                if (remainingTime > 0) {
+                    progressText.textContent = `${calculateRemainingTime(remainingTime)} (${progress.toFixed(1)}%)`;
+                } else {
+                    progressText.textContent = 'Срок истек';
+                }
+            } else {
+                progressBar.style.display = 'none';
+                progressText.textContent = '';
+            }
+        }
+
+        // Инициализация Telegram Web App
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+
+        // Обновление всех счетчиков каждую секунду
+        setInterval(() => {
+            for (let i = 1; i <= trackerCount; i++) {
+                if (document.getElementById(`tracker-${i}`)) {
+                    updateTimer(i);
+                }
+            }
+        }, 1000);
+
+        // Добавляем первый счетчик при загрузке
+        addTracker();
+    </script>
+</body>
+</html>
