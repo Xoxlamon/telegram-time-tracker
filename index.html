@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, minimum-scale=0.5, user-scalable=yes">
+    <meta name="viewport" content="width CONCAT=device-width, initial-scale=1.0, maximum-scale=2.0, minimum-scale=0.5, user-scalable=yes">
     <title>Счетчик времени</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="icon" type="image/png" href="favicon.png">
@@ -86,27 +86,6 @@
             white-space: pre-wrap;
             margin: 10px 0;
         }
-        .file-list {
-            margin-top: 10px;
-        }
-        .file-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 5px 0;
-        }
-        .file-item a, .file-item button {
-            margin-right: 10px;
-        }
-        .file-preview {
-            margin-top: 10px;
-            max-width: 100%;
-            display: none;
-        }
-        .file-preview img {
-            max-width: 100%;
-            border-radius: 5px;
-        }
         .sort-buttons {
             margin-bottom: 10px;
         }
@@ -127,9 +106,8 @@
     <script>
         let trackerCount = 0;
         let allCollapsed = false;
-        const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 МБ
 
-        function addTracker(text = "Событие началось", startDate = "", endDate = "", description = "", files = []) {
+        function addTracker(text = "Событие началось", startDate = "", endDate = "", description = "") {
             trackerCount++;
             const trackerDiv = document.createElement('div');
             trackerDiv.className = 'tracker';
@@ -157,12 +135,6 @@
                         <button onclick="cancelEdit(${trackerCount})" style="display:none;">Отмена</button>
                     </div>
                     <div class="input-group">
-                        <label>Прикрепить файлы:</label>
-                        <input type="file" id="file-input-${trackerCount}" multiple onchange="attachFiles(${trackerCount})">
-                        <div id="file-list-${trackerCount}" class="file-list">${renderFiles(files, trackerCount)}</div>
-                        <div id="file-preview-${trackerCount}" class="file-preview"></div>
-                    </div>
-                    <div class="input-group">
                         <label>Дата начала:</label>
                         <input type="date" id="start-${trackerCount}" value="${startDate}" onchange="updateTimer(${trackerCount}); saveTrackers()">
                     </div>
@@ -187,7 +159,6 @@
         function removeTracker(id) {
             const tracker = document.getElementById(`tracker-${id}`);
             if (tracker) {
-                localStorage.removeItem(`tracker-files-${id}`);
                 tracker.remove();
                 saveTrackers();
             }
@@ -281,80 +252,6 @@
             editButton.style.display = 'inline';
             saveButton.style.display = 'none';
             cancelButton.style.display = 'none';
-        }
-
-        function attachFiles(id) {
-            const fileInput = document.getElementById(`file-input-${id}`);
-            const fileList = document.getElementById(`file-list-${id}`);
-            const files = Array.from(fileInput.files);
-
-            files.forEach(file => {
-                if (file.size > MAX_FILE_SIZE) {
-                    alert(`Файл "${file.name}" слишком большой (максимум ${MAX_FILE_SIZE / 1024 / 1024} МБ).`);
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const fileData = {
-                        name: file.name,
-                        data: e.target.result,
-                        type: file.type
-                    };
-                    const existingFiles = JSON.parse(localStorage.getItem(`tracker-files-${id}`) || '[]');
-                    existingFiles.push(fileData);
-                    localStorage.setItem(`tracker-files-${id}`, JSON.stringify(existingFiles));
-                    fileList.innerHTML = renderFiles(existingFiles, id);
-                    saveTrackers();
-                };
-                reader.readAsDataURL(file);
-            });
-            fileInput.value = '';
-        }
-
-        function renderFiles(files, id) {
-            return files.map((file, index) => `
-                <div class="file-item">
-                    <a href="${file.data}" download="${file.name}">${file.name}</a>
-                    <button onclick="previewFile(${id}, ${index})">Просмотреть</button>
-                    <button onclick="removeFile(${id}, ${index})">Удалить</button>
-                </div>
-            `).join('');
-        }
-
-        function previewFile(id, index) {
-            const files = JSON.parse(localStorage.getItem(`tracker-files-${id}`) || '[]');
-            const file = files[index];
-            const previewDiv = document.getElementById(`file-preview-${id}`);
-
-            if (!file) return;
-
-            previewDiv.innerHTML = '';
-            previewDiv.style.display = 'block';
-
-            if (file.type.startsWith('image/')) {
-                const img = document.createElement('img');
-                img.src = file.data;
-                img.alt = file.name;
-                previewDiv.appendChild(img);
-            } else {
-                const message = document.createElement('p');
-                message.textContent = 'Предпросмотр недоступен. Нажмите на название файла для открытия.';
-                const link = document.createElement('a');
-                link.href = file.data;
-                link.download = file.name;
-                link.textContent = file.name;
-                previewDiv.appendChild(message);
-                previewDiv.appendChild(link);
-            }
-        }
-
-        function removeFile(id, index) {
-            const files = JSON.parse(localStorage.getItem(`tracker-files-${id}`) || '[]');
-            files.splice(index, 1);
-            localStorage.setItem(`tracker-files-${id}`, JSON.stringify(files));
-            document.getElementById(`file-list-${id}`).innerHTML = renderFiles(files, id);
-            document.getElementById(`file-preview-${id}`).style.display = 'none';
-            saveTrackers();
         }
 
         function calculateRemainingTime(remainingTime) {
@@ -456,8 +353,7 @@
                     const description = document.getElementById(`description-${i}`).value;
                     const start = document.getElementById(`start-${i}`).value;
                     const end = document.getElementById(`end-${i}`).value;
-                    const files = JSON.parse(localStorage.getItem(`tracker-files-${i}`) || '[]');
-                    trackers.push({ id: i, text, description, start, end, files });
+                    trackers.push({ id: i, text, description, start, end });
                 }
             }
             localStorage.setItem('timeTrackers', JSON.stringify(trackers));
@@ -468,8 +364,7 @@
             if (savedTrackers) {
                 const trackers = JSON.parse(savedTrackers);
                 trackers.forEach(tracker => {
-                    localStorage.setItem(`tracker-files-${tracker.id}`, JSON.stringify(tracker.files || []));
-                    addTracker(tracker.text, tracker.start, tracker.end, tracker.description, tracker.files || []);
+                    addTracker(tracker.text, tracker.start, tracker.end, tracker.description);
                     if (tracker.id > trackerCount) trackerCount = tracker.id;
                 });
             } else {
