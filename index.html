@@ -85,9 +85,17 @@
             align-items: center;
             margin: 5px 0;
         }
-        .file-item a {
-            color: var(--tg-theme-link-color, #4CAF50);
-            text-decoration: none;
+        .file-item a, .file-item button {
+            margin-right: 10px;
+        }
+        .file-preview {
+            margin-top: 10px;
+            max-width: 100%;
+            display: none;
+        }
+        .file-preview img {
+            max-width: 100%;
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -130,6 +138,7 @@
                         <label>Прикрепить файлы:</label>
                         <input type="file" id="file-input-${trackerCount}" multiple onchange="attachFiles(${trackerCount})">
                         <div id="file-list-${trackerCount}" class="file-list">${renderFiles(files, trackerCount)}</div>
+                        <div id="file-preview-${trackerCount}" class="file-preview"></div>
                     </div>
                     <div class="input-group">
                         <label>Дата начала:</label>
@@ -156,7 +165,7 @@
         function removeTracker(id) {
             const tracker = document.getElementById(`tracker-${id}`);
             if (tracker) {
-                localStorage.removeItem(`tracker-files-${id}`); // Удаляем файлы трекера
+                localStorage.removeItem(`tracker-files-${id}`);
                 tracker.remove();
                 saveTrackers();
             }
@@ -224,7 +233,7 @@
             descTextarea.style.display = 'none';
             editButton.style.display = 'inline';
             saveButton.style.display = 'none';
-            updateTimer(id); // Обновляем время с новым названием
+            updateTimer(id);
             saveTrackers();
         }
 
@@ -256,9 +265,37 @@
             return files.map((file, index) => `
                 <div class="file-item">
                     <a href="${file.data}" download="${file.name}">${file.name}</a>
+                    <button onclick="previewFile(${id}, ${index})">Просмотреть</button>
                     <button onclick="removeFile(${id}, ${index})">Удалить</button>
                 </div>
             `).join('');
+        }
+
+        function previewFile(id, index) {
+            const files = JSON.parse(localStorage.getItem(`tracker-files-${id}`) || '[]');
+            const file = files[index];
+            const previewDiv = document.getElementById(`file-preview-${id}`);
+
+            if (!file) return;
+
+            previewDiv.innerHTML = ''; // Очищаем предыдущий превью
+            previewDiv.style.display = 'block';
+
+            if (file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = file.data;
+                img.alt = file.name;
+                previewDiv.appendChild(img);
+            } else {
+                const message = document.createElement('p');
+                message.textContent = 'Предпросмотр недоступен. Нажмите на название файла для открытия.';
+                const link = document.createElement('a');
+                link.href = file.data;
+                link.download = file.name;
+                link.textContent = file.name;
+                previewDiv.appendChild(message);
+                previewDiv.appendChild(link);
+            }
         }
 
         function removeFile(id, index) {
@@ -266,6 +303,7 @@
             files.splice(index, 1);
             localStorage.setItem(`tracker-files-${id}`, JSON.stringify(files));
             document.getElementById(`file-list-${id}`).innerHTML = renderFiles(files, id);
+            document.getElementById(`file-preview-${id}`).style.display = 'none'; // Скрываем превью при удалении
             saveTrackers();
         }
 
