@@ -155,4 +155,67 @@
 
             document.getElementById(`time-${id}`).textContent = timeString;
 
-            const progress
+            const progressBar = document.getElementById(`bar-${id}`);
+            const progressText = document.getElementById(`progress-text-${id}`);
+            
+            if (endDate && !isNaN(endDate) && endDate > startDate) {
+                const totalTime = endDate - startDate;
+                const passedTime = now - startDate;
+                const progress = Math.min((passedTime / totalTime) * 100, 100);
+                
+                progressBar.style.display = 'block';
+                document.getElementById(`progress-${id}`).style.width = `${progress}%`;
+                
+                const remainingTime = endDate - now;
+                if (remainingTime > 0) {
+                    progressText.textContent = `${calculateRemainingTime(remainingTime)} (${progress.toFixed(1)}%)`;
+                } else {
+                    progressText.textContent = 'Срок истек';
+                }
+            } else {
+                progressBar.style.display = 'none';
+                progressText.textContent = '';
+            }
+        }
+
+        function saveTrackers() {
+            const trackers = [];
+            for (let i = 1; i <= trackerCount; i++) {
+                if (document.getElementById(`tracker-${i}`)) {
+                    const text = document.getElementById(`text-${i}`).value;
+                    const start = document.getElementById(`start-${i}`).value;
+                    const end = document.getElementById(`end-${i}`).value;
+                    trackers.push({ id: i, text, start, end });
+                }
+            }
+            localStorage.setItem('timeTrackers', JSON.stringify(trackers));
+        }
+
+        function loadTrackers() {
+            const savedTrackers = localStorage.getItem('timeTrackers');
+            if (savedTrackers) {
+                const trackers = JSON.parse(savedTrackers);
+                trackers.forEach(tracker => {
+                    addTracker(tracker.text, tracker.start, tracker.end);
+                    if (tracker.id > trackerCount) trackerCount = tracker.id;
+                });
+            } else {
+                addTracker();
+            }
+        }
+
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+
+        setInterval(() => {
+            for (let i = 1; i <= trackerCount; i++) {
+                if (document.getElementById(`tracker-${i}`)) {
+                    updateTimer(i);
+                }
+            }
+        }, 1000);
+
+        loadTrackers();
+    </script>
+</body>
+</html>
