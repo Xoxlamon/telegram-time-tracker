@@ -27,6 +27,8 @@
             margin-bottom: 10px;
             border-radius: 5px;
             transition: background-color 0.3s;
+            position: relative;
+            padding-left: 20px; /* Отступ для полоски */
         }
         .tracker.expired {
             background-color: #ffcccc;
@@ -34,6 +36,20 @@
         }
         .tracker.hidden {
             display: none;
+        }
+        .category-indicator {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 10px;
+            border-radius: 5px 0 0 5px;
+        }
+        .category-indicator.work {
+            background-color: #4CAF50; /* Зеленый для "Работа" */
+        }
+        .category-indicator.personal {
+            background-color: #2196F3; /* Синий для "Личное" */
         }
         .container {
             text-align: center;
@@ -57,10 +73,10 @@
             transition: width 0.3s, background-color 0.3s;
         }
         .progress.near-complete {
-            background-color: #ff9800; /* Оранжевый при 80-99% */
+            background-color: #ff9800;
         }
         .progress.complete {
-            background-color: #f44336; /* Красный при 100% */
+            background-color: #f44336;
         }
         button {
             padding: 5px 10px;
@@ -82,7 +98,7 @@
             justify-content: space-between;
             align-items: center;
             margin: 0;
-            padding: 5px 0;
+            padding: 5px 0 5px 20px; /* Учитываем полоску */
         }
         .tracker-collapsed .summary p {
             margin: 0;
@@ -143,9 +159,6 @@
             display: flex;
             flex-direction: column;
         }
-        #end-date-input-${trackerCount} {
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -190,6 +203,7 @@
             if (collapsedState[trackerCount]) trackerDiv.classList.add('tracker-collapsed');
             
             trackerDiv.innerHTML = `
+                <div class="category-indicator ${category === 'Работа' ? 'work' : category === 'Личное' ? 'personal' : ''}"></div>
                 <div class="summary">
                     <p id="time-${trackerCount}"></p>
                     <div class="progress-bar" id="bar-${trackerCount}" style="display:none;">
@@ -212,11 +226,10 @@
                     </div>
                     <div class="input-group">
                         <label>Категория:</label>
-                        <select id="category-${trackerCount}" class="category-select" onchange="saveTrackers()">
+                        <select id="category-${trackerCount}" class="category-select" onchange="updateCategoryIndicator(${trackerCount}); saveTrackers()">
                             <option value="Без категории" ${category === "Без категории" ? "selected" : ""}>Без категории</option>
                             <option value="Работа" ${category === "Работа" ? "selected" : ""}>Работа</option>
                             <option value="Личное" ${category === "Личное" ? "selected" : ""}>Личное</option>
-                            <option value="Учеба" ${category === "Учеба" ? "selected" : ""}>Учеба</option>
                         </select>
                     </div>
                     <div class="input-group">
@@ -254,6 +267,18 @@
             saveTrackers();
             sortTrackers(currentSort);
             filterTrackers(currentFilter);
+        }
+
+        function updateCategoryIndicator(id) {
+            const tracker = document.getElementById(`tracker-${id}`);
+            const category = document.getElementById(`category-${id}`).value;
+            const indicator = tracker.querySelector('.category-indicator');
+            indicator.className = 'category-indicator';
+            if (category === 'Работа') {
+                indicator.classList.add('work');
+            } else if (category === 'Личное') {
+                indicator.classList.add('personal');
+            }
         }
 
         function toggleEndDate(id) {
@@ -336,7 +361,8 @@
         function saveTracker(id) {
             const textInput = document.getElementById(`text-${id}`);
             const startDate = new Date(document.getElementById(`start-${id}`).value);
-            const endDate = document.getElementById(`end-option-${id}`).value === 'custom' ? new Date(document.getElementById(`end-date-input-${id}`).value) : null;
+            const endOption = document.getElementById(`end-option-${id}`).value;
+            const endDate = endOption === 'custom' ? new Date(document.getElementById(`end-date-input-${id}`).value) : null;
             
             if (!textInput.value.trim()) {
                 alert('Название не может быть пустым');
@@ -413,7 +439,7 @@
 
         function updateTimer(id) {
             const tracker = document.getElementById(`tracker-${id}`);
-            if (!tracker || !tracker.getBoundingClientRect().top) return; // Оптимизация для видимых трекеров
+            if (!tracker || !tracker.getBoundingClientRect().top) return;
             const startDate = new Date(document.getElementById(`start-${id}`).value);
             const endOption = document.getElementById(`end-option-${id}`).value;
             const endDate = endOption === 'custom' ? new Date(document.getElementById(`end-date-input-${id}`).value) : null;
@@ -541,7 +567,7 @@
                     const now = new Date();
                     const isExpiredA = endA && endA < now;
                     const isExpiredB = endB && endB < now;
-                    return (isExpiredA === isExpiredB) ? 0 : isExpiredA ? 1 : -1; // Активные выше
+                    return (isExpiredA === isExpiredB) ? 0 : isExpiredA ? 1 : -1;
                 }
             });
 
