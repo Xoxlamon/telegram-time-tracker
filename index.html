@@ -4,15 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, minimum-scale=0.5, user-scalable=yes">
     <title>Счетчик времени</title>
-    <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Иконка для браузера (favicon) -->
     <link rel="icon" type="image/png" href="favicon.png">
-    <!-- Иконка для главного экрана iOS -->
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-    <!-- Иконка для Android (через manifest) -->
     <link rel="manifest" href="manifest.json">
-    <!-- Цвет темы для Android -->
     <meta name="theme-color" content="#4CAF50">
     <style>
         body {
@@ -64,6 +59,12 @@
             border-radius: 5px;
             cursor: pointer;
         }
+        .tracker-collapsed .details {
+            display: none;
+        }
+        .tracker-collapsed .summary {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -83,22 +84,27 @@
             trackerDiv.id = `tracker-${trackerCount}`;
             
             trackerDiv.innerHTML = `
-                <div class="input-group">
-                    <input type="text" id="text-${trackerCount}" placeholder="Введите свой текст" value="${text}">
+                <div class="summary">
+                    <p id="time-${trackerCount}"></p>
                 </div>
-                <div class="input-group">
-                    <label>Дата начала:</label>
-                    <input type="date" id="start-${trackerCount}" value="${startDate}" onchange="updateTimer(${trackerCount}); saveTrackers()">
+                <div class="details">
+                    <div class="input-group">
+                        <input type="text" id="text-${trackerCount}" placeholder="Введите свой текст" value="${text}">
+                    </div>
+                    <div class="input-group">
+                        <label>Дата начала:</label>
+                        <input type="date" id="start-${trackerCount}" value="${startDate}" onchange="updateTimer(${trackerCount}); saveTrackers()">
+                    </div>
+                    <div class="input-group">
+                        <label>Дата окончания (опционально):</label>
+                        <input type="date" id="end-${trackerCount}" value="${endDate}" onchange="updateTimer(${trackerCount}); saveTrackers()">
+                    </div>
+                    <div class="progress-bar" id="bar-${trackerCount}">
+                        <div class="progress" id="progress-${trackerCount}"></div>
+                    </div>
+                    <p id="progress-text-${trackerCount}"></p>
                 </div>
-                <div class="input-group">
-                    <label>Дата окончания (опционально):</label>
-                    <input type="date" id="end-${trackerCount}" value="${endDate}" onchange="updateTimer(${trackerCount}); saveTrackers()">
-                </div>
-                <p id="time-${trackerCount}"></p>
-                <div class="progress-bar" id="bar-${trackerCount}">
-                    <div class="progress" id="progress-${trackerCount}"></div>
-                </div>
-                <p id="progress-text-${trackerCount}"></p>
+                <button onclick="toggleTracker(${trackerCount})">Свернуть</button>
                 <button onclick="removeTracker(${trackerCount})">Удалить</button>
             `;
             
@@ -112,6 +118,18 @@
             if (tracker) {
                 tracker.remove();
                 saveTrackers();
+            }
+        }
+
+        function toggleTracker(id) {
+            const tracker = document.getElementById(`tracker-${id}`);
+            const toggleButton = tracker.querySelector('button[onclick^="toggleTracker"]');
+            if (tracker.classList.contains('tracker-collapsed')) {
+                tracker.classList.remove('tracker-collapsed');
+                toggleButton.textContent = 'Свернуть';
+            } else {
+                tracker.classList.add('tracker-collapsed');
+                toggleButton.textContent = 'Развернуть';
             }
         }
 
