@@ -134,7 +134,7 @@
             color: var(--tg-theme-hint-color, #888);
             margin-bottom: 10px;
         }
-        .sort-buttons, .filter-buttons {
+        .filter-buttons {
             margin-bottom: 10px;
         }
         .notification {
@@ -180,7 +180,7 @@
             font-size: 24px;
             cursor: pointer;
         }
-        .font-size-panel {
+        .settings-panel {
             display: none;
             position: absolute;
             top: 40px;
@@ -190,9 +190,18 @@
             padding: 10px;
             border-radius: 5px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            text-align: left;
         }
-        .font-size-panel.active {
+        .settings-panel.active {
             display: block;
+        }
+        .settings-panel label {
+            display: block;
+            margin: 5px 0;
+        }
+        .settings-panel select, .settings-panel input[type="range"] {
+            width: 100%;
+            margin-bottom: 10px;
         }
         .delete-button {
             position: absolute;
@@ -201,7 +210,7 @@
             padding: 5px;
             background: none;
             border: none;
-            color: #4CAF50; /* Зеленый цвет */
+            color: #4CAF50;
             cursor: pointer;
         }
     </style>
@@ -210,12 +219,6 @@
     <div class="container">
         <h2>Счетчики времени</h2>
         <button onclick="toggleAllTrackers()"><i class="fas fa-compress"></i> Свернуть все</button>
-        <div class="sort-buttons">
-            <button onclick="sortTrackers('start')"><i class="fas fa-calendar-day"></i> По дате начала</button>
-            <button onclick="sortTrackers('end')"><i class="fas fa-calendar-times"></i> По дате окончания</button>
-            <button onclick="sortTrackers('personal')"><i class="fas fa-user"></i> Личные</button>
-            <button onclick="sortTrackers('work')"><i class="fas fa-briefcase"></i> Рабочие</button>
-        </div>
         <div class="filter-buttons">
             <input type="text" id="search" placeholder="Поиск по названию или описанию" oninput="filterTrackers(currentFilter)">
             <button onclick="filterTrackers('all')"><i class="fas fa-list"></i> Все</button>
@@ -231,15 +234,17 @@
             <p id="stats-content"></p>
             <button onclick="hideStats()">Закрыть</button>
         </div>
-        <i class="fas fa-cog settings-icon" onclick="toggleFontSizePanel()"></i>
-        <div id="font-size-panel" class="font-size-panel">
-            <label for="font-size-select">Размер шрифта:</label>
-            <select id="font-size-select" onchange="changeFontSize()">
-                <option value="14">14px</option>
-                <option value="16" selected>16px</option>
-                <option value="18">18px</option>
-                <option value="20">20px</option>
+        <i class="fas fa-cog settings-icon" onclick="toggleSettingsPanel()"></i>
+        <div id="settings-panel" class="settings-panel">
+            <label for="sort-select">Сортировка:</label>
+            <select id="sort-select" onchange="sortTrackers(this.value)">
+                <option value="start">По дате начала</option>
+                <option value="end">По дате окончания</option>
+                <option value="personal">Личные</option>
+                <option value="work">Рабочие</option>
             </select>
+            <label for="font-size-slider">Размер шрифта: <span id="font-size-value">16</span>px</label>
+            <input type="range" id="font-size-slider" min="14" max="20" step="2" value="16" oninput="updateFontSize(this.value)">
         </div>
     </div>
 
@@ -698,14 +703,18 @@
             document.getElementById('stats-modal').classList.remove('active');
         }
 
-        function toggleFontSizePanel() {
-            const panel = document.getElementById('font-size-panel');
+        function toggleSettingsPanel() {
+            const panel = document.getElementById('settings-panel');
             panel.classList.toggle('active');
+            document.getElementById('sort-select').value = currentSort; // Устанавливаем текущую сортировку
+            document.getElementById('font-size-slider').value = fontSize; // Устанавливаем текущий размер шрифта
+            document.getElementById('font-size-value').textContent = fontSize;
         }
 
-        function changeFontSize() {
-            fontSize = document.getElementById('font-size-select').value;
+        function updateFontSize(value) {
+            fontSize = value;
             localStorage.setItem('fontSize', fontSize);
+            document.getElementById('font-size-value').textContent = fontSize;
             applyFontSize();
         }
 
