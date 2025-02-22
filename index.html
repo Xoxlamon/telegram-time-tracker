@@ -72,6 +72,10 @@
             box-sizing: border-box;
             resize: vertical;
         }
+        .description-display {
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -98,11 +102,14 @@
                 </div>
                 <div class="details">
                     <div class="input-group">
-                        <input type="text" id="text-${trackerCount}" placeholder="Введите свой текст" value="${text}">
+                        <input type="text" id="text-${trackerCount}" placeholder="Введите свой текст" value="${text}" onchange="saveTrackers()">
                     </div>
                     <div class="input-group">
                         <label>Описание (опционально):</label>
-                        <textarea id="description-${trackerCount}" placeholder="Введите описание">${description}</textarea>
+                        <div id="description-display-${trackerCount}" class="description-display">${description}</div>
+                        <textarea id="description-${trackerCount}" placeholder="Введите описание" style="display:none;">${description}</textarea>
+                        <button onclick="editDescription(${trackerCount})">Редактировать описание</button>
+                        <button onclick="saveDescription(${trackerCount})" style="display:none;">Сохранить</button>
                     </div>
                     <div class="input-group">
                         <label>Дата начала:</label>
@@ -162,6 +169,32 @@
                 }
             });
             toggleAllButton.textContent = allCollapsed ? 'Развернуть все' : 'Свернуть все';
+        }
+
+        function editDescription(id) {
+            const display = document.getElementById(`description-display-${id}`);
+            const textarea = document.getElementById(`description-${id}`);
+            const editButton = document.querySelector(`button[onclick="editDescription(${id})"]`);
+            const saveButton = document.querySelector(`button[onclick="saveDescription(${id})"]`);
+            
+            display.style.display = 'none';
+            textarea.style.display = 'block';
+            editButton.style.display = 'none';
+            saveButton.style.display = 'inline';
+        }
+
+        function saveDescription(id) {
+            const display = document.getElementById(`description-display-${id}`);
+            const textarea = document.getElementById(`description-${id}`);
+            const editButton = document.querySelector(`button[onclick="editDescription(${id})"]`);
+            const saveButton = document.querySelector(`button[onclick="saveDescription(${id})"]`);
+            
+            display.textContent = textarea.value;
+            display.style.display = 'block';
+            textarea.style.display = 'none';
+            editButton.style.display = 'inline';
+            saveButton.style.display = 'none';
+            saveTrackers();
         }
 
         function calculateRemainingTime(remainingTime) {
