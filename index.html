@@ -91,11 +91,13 @@
             width: 30%;
             display: block;
         }
-        textarea {
+        textarea, select {
             width: 100%;
-            height: 80px;
             padding: 5px;
             box-sizing: border-box;
+        }
+        textarea {
+            height: 80px;
             resize: vertical;
         }
         .description-display, .text-display {
@@ -137,6 +139,13 @@
         .stats-modal.active {
             display: block;
         }
+        .end-date-group {
+            display: flex;
+            flex-direction: column;
+        }
+        #end-date-input-${trackerCount} {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -157,9 +166,6 @@
         </div>
         <div id="trackers"></div>
         <button onclick="addTracker()"><i class="fas fa-plus"></i> Добавить отслеживание</button>
-        <button onclick="exportTrackers()"><i class="fas fa-download"></i> Экспорт</button>
-        <input type="file" id="import-file" accept=".json" onchange="importTrackers()" style="display:none;">
-        <button onclick="document.getElementById('import-file').click()"><i class="fas fa-upload"></i> Импорт</button>
         <button onclick="showStats()"><i class="fas fa-chart-bar"></i> Статистика</button>
         <div id="notification" class="notification">Сохранено</div>
         <div id="stats-modal" class="stats-modal">
@@ -226,9 +232,13 @@
                         <label>Дата начала:</label>
                         <input type="date" id="start-${trackerCount}" value="${startDate}" onchange="updateTimer(${trackerCount}); saveTrackers()">
                     </div>
-                    <div class="input-group">
-                        <label>Дата окончания (опционально):</label>
-                        <input type="date" id="end-${trackerCount}" value="${endDate}" onchange="updateTimer(${trackerCount}); saveTrackers()">
+                    <div class="input-group end-date-group">
+                        <label>Дата окончания:</label>
+                        <select id="end-option-${trackerCount}" onchange="toggleEndDate(${trackerCount})">
+                            <option value="none" ${!endDate ? "selected" : ""}>Нет</option>
+                            <option value="custom" ${endDate ? "selected" : ""}>Выбрать дату</option>
+                        </select>
+                        <input type="date" id="end-date-input-${trackerCount}" value="${endDate}" onchange="updateTimer(${trackerCount}); saveTrackers()" style="${endDate ? '' : 'display:none;'}">
                     </div>
                     <div class="progress-bar" id="bar-full-${trackerCount}" style="display:none;">
                         <div class="progress" id="progress-full-${trackerCount}"></div>
@@ -244,6 +254,19 @@
             saveTrackers();
             sortTrackers(currentSort);
             filterTrackers(currentFilter);
+        }
+
+        function toggleEndDate(id) {
+            const endOption = document.getElementById(`end-option-${id}`).value;
+            const endInput = document.getElementById(`end-date-input-${id}`);
+            if (endOption === 'none') {
+                endInput.style.display = 'none';
+                endInput.value = '';
+            } else {
+                endInput.style.display = 'block';
+            }
+            updateTimer(id);
+            saveTrackers();
         }
 
         function removeTracker(id) {
@@ -313,7 +336,7 @@
         function saveTracker(id) {
             const textInput = document.getElementById(`text-${id}`);
             const startDate = new Date(document.getElementById(`start-${id}`).value);
-            const endDate = document.getElementById(`end-${id}`).value ? new Date(document.getElementById(`end-${id}`).value) : null;
+            const endDate = document.getElementById(`end-option-${id}`).value === 'custom' ? new Date(document.getElementById(`end-date-input-${id}`).value) : null;
             
             if (!textInput.value.trim()) {
                 alert('Название не может быть пустым');
@@ -390,9 +413,10 @@
 
         function updateTimer(id) {
             const tracker = document.getElementById(`tracker-${id}`);
-            if (!tracker || !tracker.getBoundingClientRect().top) return; // Оптимизация: обновляем только видимые трекеры
+            if (!tracker || !tracker.getBoundingClientRect().top) return; // Оптимизация для видимых трекеров
             const startDate = new Date(document.getElementById(`start-${id}`).value);
-            const endDate = document.getElementById(`end-${id}`).value ? new Date(document.getElementById(`end-${id}`).value) : null;
+            const endOption = document.getElementById(`end-option-${id}`).value;
+            const endDate = endOption === 'custom' ? new Date(document.getElementById(`end-date-input-${id}`).value) : null;
             const customText = document.getElementById(`text-${id}`).value || 'Событие началось';
             const repeat = document.getElementById(`repeat-${id}`).value;
             const now = new Date();
@@ -463,7 +487,7 @@
 
         function resetRepeatedTracker(id, repeat) {
             const startInput = document.getElementById(`start-${id}`);
-            const endInput = document.getElementById(`end-${id}`);
+            const endInput = document.getElementById(`end-date-input-${id}`);
             let newStart = new Date(startInput.value);
             let newEnd = new Date(endInput.value);
             
@@ -480,6 +504,8 @@
             
             startInput.value = newStart.toISOString().split('T')[0];
             endInput.value = newEnd.toISOString().split('T')[0];
+            document.getElementById(`end-option-${id}`).value = 'custom';
+            endInput.style.display = 'block';
             updateTimer(id);
             saveTrackers();
         }
@@ -502,12 +528,16 @@
                     const startB = new Date(document.getElementById(`start-${idB}`).value || '9999-12-31');
                     return startA - startB;
                 } else if (criteria === 'end') {
-                    const endA = new Date(document.getElementById(`end-${idA}`).value || '9999-12-31');
-                    const endB = new Date(document.getElementById(`end-${idB}`).value || '9999-12-31');
+                    const endOptionA = document.getElementById(`end-option-${idA}`).value;
+                    const endOptionB = document.getElementById(`end-option-${idB}`).value;
+                    const endA = endOptionA === 'custom' ? new Date(document.getElementById(`end-date-input-${idA}`).value || '9999-12-31') : new Date('9999-12-31');
+                    const endB = endOptionB === 'custom' ? new Date(document.getElementById(`end-date-input-${idB}`).value || '9999-12-31') : new Date('9999-12-31');
                     return endA - endB;
                 } else if (criteria === 'status') {
-                    const endA = document.getElementById(`end-${idA}`).value ? new Date(document.getElementById(`end-${idA}`).value) : null;
-                    const endB = document.getElementById(`end-${idB}`).value ? new Date(document.getElementById(`end-${idB}`).value) : null;
+                    const endOptionA = document.getElementById(`end-option-${idA}`).value;
+                    const endOptionB = document.getElementById(`end-option-${idB}`).value;
+                    const endA = endOptionA === 'custom' ? new Date(document.getElementById(`end-date-input-${idA}`).value) : null;
+                    const endB = endOptionB === 'custom' ? new Date(document.getElementById(`end-date-input-${idB}`).value) : null;
                     const now = new Date();
                     const isExpiredA = endA && endA < now;
                     const isExpiredB = endB && endB < now;
@@ -524,7 +554,8 @@
             const searchValue = document.getElementById('search').value.toLowerCase();
             trackers.forEach(tracker => {
                 const id = tracker.id.split('-')[1];
-                const endDate = document.getElementById(`end-${id}`).value ? new Date(document.getElementById(`end-${id}`).value) : null;
+                const endOption = document.getElementById(`end-option-${id}`).value;
+                const endDate = endOption === 'custom' ? new Date(document.getElementById(`end-date-input-${id}`).value) : null;
                 const now = new Date();
                 const isExpired = endDate && endDate < now;
                 const text = document.getElementById(`text-${id}`).value.toLowerCase();
@@ -543,34 +574,6 @@
 
                 tracker.classList.toggle('hidden', !(shouldShow && matchesSearch));
             });
-        }
-
-        function exportTrackers() {
-            const trackers = JSON.parse(localStorage.getItem('timeTrackers') || '[]');
-            const blob = new Blob([JSON.stringify(trackers, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'trackers.json';
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function importTrackers() {
-            const fileInput = document.getElementById('import-file');
-            const file = fileInput.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const importedTrackers = JSON.parse(e.target.result);
-                    localStorage.setItem('timeTrackers', JSON.stringify(importedTrackers));
-                    document.getElementById('trackers').innerHTML = '';
-                    trackerCount = 0;
-                    loadTrackers();
-                };
-                reader.readAsText(file);
-            }
-            fileInput.value = '';
         }
 
         function showStats() {
@@ -607,7 +610,8 @@
                     const text = document.getElementById(`text-${i}`).value;
                     const description = document.getElementById(`description-${i}`).value;
                     const start = document.getElementById(`start-${i}`).value;
-                    const end = document.getElementById(`end-${i}`).value;
+                    const endOption = document.getElementById(`end-option-${i}`).value;
+                    const end = endOption === 'custom' ? document.getElementById(`end-date-input-${i}`).value : '';
                     const category = document.getElementById(`category-${i}`).value;
                     const repeat = document.getElementById(`repeat-${i}`).value;
                     trackers.push({ id: i, text, description, start, end, category, repeat });
@@ -635,8 +639,8 @@
         window.Telegram.WebApp.expand();
 
         setInterval(() => {
-            const visibleTrackers = Array.from(document.querySelectorAll('.tracker:not(.hidden)'));
-            visibleTrackers.forEach(tracker => {
+            const trackers = document.querySelectorAll('.tracker:not(.hidden)');
+            trackers.forEach(tracker => {
                 const id = tracker.id.split('-')[1];
                 updateTimer(id);
             });
