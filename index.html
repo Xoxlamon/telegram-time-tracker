@@ -196,12 +196,12 @@
         }
         .delete-button {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            bottom: 5px;
+            right: 5px;
             padding: 5px;
             background: none;
             border: none;
-            color: var(--tg-theme-button-text-color, #ffffff);
+            color: #4CAF50; /* Зеленый цвет */
             cursor: pointer;
         }
     </style>
@@ -317,7 +317,7 @@
                     <p id="progress-text-${trackerCount}"></p>
                 </div>
                 <button onclick="toggleTracker(${trackerCount})"><i class="fas fa-angle-${collapsedState[trackerCount] ? 'down' : 'up'}"></i> ${collapsedState[trackerCount] ? 'Развернуть' : 'Свернуть'}</button>
-                <button class="delete-button" onclick="removeTracker(${trackerCount})"><i class="fas fa-trash"></i></button>
+                <button class="delete-button" onclick="confirmDelete(${trackerCount})"><i class="fas fa-trash"></i></button>
             `;
             
             document.getElementById('trackers').appendChild(trackerDiv);
@@ -360,6 +360,12 @@
             }
             updateTimer(id);
             saveTrackers();
+        }
+
+        function confirmDelete(id) {
+            if (confirm("Вы уверены, что хотите удалить этот трекер?")) {
+                removeTracker(id);
+            }
         }
 
         function removeTracker(id) {
@@ -711,7 +717,7 @@
             });
             const compactDates = document.querySelectorAll('.start-date-compact');
             compactDates.forEach(element => {
-                element.style.fontSize = `${Math.max(12, fontSize - 4)}px`; // Уменьшенный размер для свернутого вида
+                element.style.fontSize = `${Math.max(12, fontSize - 4)}px`;
             });
         }
 
