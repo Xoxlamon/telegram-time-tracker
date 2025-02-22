@@ -20,6 +20,7 @@
             height: 100vh;
             overflow-x: hidden;
             overflow-y: auto;
+            font-size: 18px; /* Увеличенный шрифт */
         }
         .tracker {
             border: 1px solid var(--tg-theme-hint-color, #ccc);
@@ -28,7 +29,7 @@
             border-radius: 5px;
             transition: background-color 0.3s;
             position: relative;
-            padding-left: 20px; /* Отступ для полоски */
+            padding-left: 20px;
         }
         .tracker.expired {
             background-color: #ffcccc;
@@ -46,10 +47,10 @@
             border-radius: 5px 0 0 5px;
         }
         .category-indicator.work {
-            background-color: #4CAF50; /* Зеленый для "Работа" */
+            background-color: #4CAF50;
         }
         .category-indicator.personal {
-            background-color: #2196F3; /* Синий для "Личное" */
+            background-color: #2196F3;
         }
         .container {
             text-align: center;
@@ -86,6 +87,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 18px;
         }
         button i {
             margin-right: 5px;
@@ -98,7 +100,8 @@
             justify-content: space-between;
             align-items: center;
             margin: 0;
-            padding: 5px 0 5px 20px; /* Учитываем полоску */
+            padding: 5px 0 5px 20px;
+            position: relative;
         }
         .tracker-collapsed .summary p {
             margin: 0;
@@ -107,10 +110,18 @@
             width: 30%;
             display: block;
         }
+        .tracker-collapsed .summary .start-date-compact {
+            position: absolute;
+            bottom: 2px;
+            right: 40px;
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #888);
+        }
         textarea, select {
             width: 100%;
             padding: 5px;
             box-sizing: border-box;
+            font-size: 18px;
         }
         textarea {
             height: 80px;
@@ -119,6 +130,11 @@
         .description-display, .text-display {
             white-space: pre-wrap;
             margin: 8px 0;
+        }
+        .start-date {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #888);
+            margin-bottom: 10px;
         }
         .sort-buttons, .filter-buttons {
             margin-bottom: 10px;
@@ -166,10 +182,10 @@
         <h2>Счетчики времени</h2>
         <button onclick="toggleAllTrackers()"><i class="fas fa-compress"></i> Свернуть все</button>
         <div class="sort-buttons">
-            <button onclick="sortTrackers('title')"><i class="fas fa-sort-alpha-down"></i> По названию</button>
             <button onclick="sortTrackers('start')"><i class="fas fa-calendar-day"></i> По дате начала</button>
             <button onclick="sortTrackers('end')"><i class="fas fa-calendar-times"></i> По дате окончания</button>
-            <button onclick="sortTrackers('status')"><i class="fas fa-check"></i> По статусу</button>
+            <button onclick="sortTrackers('personal')"><i class="fas fa-user"></i> Личные</button>
+            <button onclick="sortTrackers('work')"><i class="fas fa-briefcase"></i> Рабочие</button>
         </div>
         <div class="filter-buttons">
             <input type="text" id="search" placeholder="Поиск по названию или описанию" oninput="filterTrackers(currentFilter)">
@@ -192,7 +208,7 @@
         let trackerCount = 0;
         let allCollapsed = false;
         let currentFilter = 'all';
-        let currentSort = localStorage.getItem('sortPreference') || 'title';
+        let currentSort = localStorage.getItem('sortPreference') || 'start';
         const collapsedState = JSON.parse(localStorage.getItem('collapsedState')) || {};
 
         function addTracker(text = "Событие началось", startDate = "", endDate = "", description = "", category = "Без категории", repeat = "none") {
@@ -204,11 +220,13 @@
             
             trackerDiv.innerHTML = `
                 <div class="category-indicator ${category === 'Работа' ? 'work' : category === 'Личное' ? 'personal' : ''}"></div>
+                <div class="start-date" id="start-date-display-${trackerCount}">${startDate ? new Date(startDate).toLocaleDateString('ru-RU') : 'Нет даты начала'}</div>
                 <div class="summary">
                     <p id="time-${trackerCount}"></p>
                     <div class="progress-bar" id="bar-${trackerCount}" style="display:none;">
                         <div class="progress" id="progress-${trackerCount}"></div>
                     </div>
+                    <span class="start-date-compact" id="start-date-compact-${trackerCount}">${startDate ? new Date(startDate).toLocaleDateString('ru-RU') : 'Нет'}</span>
                 </div>
                 <div class="details">
                     <div class="input-group">
@@ -243,7 +261,7 @@
                     </div>
                     <div class="input-group">
                         <label>Дата начала:</label>
-                        <input type="date" id="start-${trackerCount}" value="${startDate}" onchange="updateTimer(${trackerCount}); saveTrackers()">
+                        <input type="date" id="start-${trackerCount}" value="${startDate}" onchange="updateStartDateDisplay(${trackerCount}); updateTimer(${trackerCount}); saveTrackers()">
                     </div>
                     <div class="input-group end-date-group">
                         <label>Дата окончания:</label>
@@ -267,6 +285,15 @@
             saveTrackers();
             sortTrackers(currentSort);
             filterTrackers(currentFilter);
+        }
+
+        function updateStartDateDisplay(id) {
+            const startDate = document.getElementById(`start-${id}`).value;
+            const display = document.getElementById(`start-date-display-${id}`);
+            const compact = document.getElementById(`start-date-compact-${id}`);
+            const dateStr = startDate ? new Date(startDate).toLocaleDateString('ru-RU') : 'Нет даты начала';
+            display.textContent = dateStr;
+            compact.textContent = startDate ? new Date(startDate).toLocaleDateString('ru-RU') : 'Нет';
         }
 
         function updateCategoryIndicator(id) {
@@ -545,11 +572,7 @@
             trackers.sort((a, b) => {
                 const idA = a.id.split('-')[1];
                 const idB = b.id.split('-')[1];
-                if (criteria === 'title') {
-                    const textA = document.getElementById(`text-${idA}`).value;
-                    const textB = document.getElementById(`text-${idB}`).value;
-                    return textA.localeCompare(textB);
-                } else if (criteria === 'start') {
+                if (criteria === 'start') {
                     const startA = new Date(document.getElementById(`start-${idA}`).value || '9999-12-31');
                     const startB = new Date(document.getElementById(`start-${idB}`).value || '9999-12-31');
                     return startA - startB;
@@ -559,15 +582,14 @@
                     const endA = endOptionA === 'custom' ? new Date(document.getElementById(`end-date-input-${idA}`).value || '9999-12-31') : new Date('9999-12-31');
                     const endB = endOptionB === 'custom' ? new Date(document.getElementById(`end-date-input-${idB}`).value || '9999-12-31') : new Date('9999-12-31');
                     return endA - endB;
-                } else if (criteria === 'status') {
-                    const endOptionA = document.getElementById(`end-option-${idA}`).value;
-                    const endOptionB = document.getElementById(`end-option-${idB}`).value;
-                    const endA = endOptionA === 'custom' ? new Date(document.getElementById(`end-date-input-${idA}`).value) : null;
-                    const endB = endOptionB === 'custom' ? new Date(document.getElementById(`end-date-input-${idB}`).value) : null;
-                    const now = new Date();
-                    const isExpiredA = endA && endA < now;
-                    const isExpiredB = endB && endB < now;
-                    return (isExpiredA === isExpiredB) ? 0 : isExpiredA ? 1 : -1;
+                } else if (criteria === 'personal') {
+                    const catA = document.getElementById(`category-${idA}`).value === 'Личное' ? 0 : 1;
+                    const catB = document.getElementById(`category-${idB}`).value === 'Личное' ? 0 : 1;
+                    return catA - catB;
+                } else if (criteria === 'work') {
+                    const catA = document.getElementById(`category-${idA}`).value === 'Работа' ? 0 : 1;
+                    const catB = document.getElementById(`category-${idB}`).value === 'Работа' ? 0 : 1;
+                    return catA - catB;
                 }
             });
 
