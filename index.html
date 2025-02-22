@@ -76,6 +76,19 @@
             white-space: pre-wrap;
             margin: 10px 0;
         }
+        .file-list {
+            margin-top: 10px;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .file-item a {
+            color: var(--tg-theme-link-color, #4CAF50);
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -90,7 +103,7 @@
         let trackerCount = 0;
         let allCollapsed = false;
 
-        function addTracker(text = "Событие началось", startDate = "", endDate = "", description = "") {
+        function addTracker(text = "Событие началось", startDate = "", endDate = "", description = "", files = []) {
             trackerCount++;
             const trackerDiv = document.createElement('div');
             trackerDiv.className = 'tracker';
@@ -110,6 +123,11 @@
                         <textarea id="description-${trackerCount}" placeholder="Введите описание" style="display:none;">${description}</textarea>
                         <button onclick="editDescription(${trackerCount})">Редактировать описание</button>
                         <button onclick="saveDescription(${trackerCount})" style="display:none;">Сохранить</button>
+                    </div>
+                    <div class="input-group">
+                        <label>Прикрепить файлы:</label>
+                        <input type="file" id="file-input-${trackerCount}" multiple onchange="attachFiles(${trackerCount})">
+                        <div id="file-list-${trackerCount}" class="file-list">${renderFiles(files, trackerCount)}</div>
                     </div>
                     <div class="input-group">
                         <label>Дата начала:</label>
@@ -197,6 +215,47 @@
             saveTrackers();
         }
 
+        function attachFiles(id) {
+            const fileInput = document.getElementById(`file-input-${id}`);
+            const fileList = document.getElementById(`file-list-${id}`);
+            const files = Array.from(fileInput.files);
+
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const fileData = {
+                        name: file.name,
+                        data: e.target.result,
+                        type: file.type
+                    };
+                    const existingFiles = JSON.parse(localStorage.getItem(`tracker-files-${id}`) || '[]');
+                    existingFiles.push(fileData);
+                    localStorage.setItem(`tracker-files-${id}`, JSON.stringify(existingFiles));
+                    fileList.innerHTML = renderFiles(existingFiles, id);
+                    saveTrackers();
+                };
+                reader.readAsDataURL(file);
+            });
+            fileInput.value = ''; // Очищаем input после загрузки
+        }
+
+        function renderFiles(files, id) {
+            return files.map((file, index) => `
+                <div class="file-item">
+                    <a href="${file.data}" download="${file.name}">${file.name}</a>
+                    <button onclick="removeFile(${id}, ${index})">Удалить</button>
+                </div>
+            `).join('');
+        }
+
+        function removeFile(id, index) {
+            const files = JSON.parse(localStorage.getItem(`tracker-files-${id}`) || '[]');
+            files.splice(index, 1);
+            localStorage.setItem(`tracker-files-${id}`, JSON.stringify(files));
+            document.getElementById(`file-list-${id}`).innerHTML = renderFiles(files, id);
+            saveTrackers();
+        }
+
         function calculateRemainingTime(remainingTime) {
             const remainingDays = Math.ceil(remainingTime / (1000 * 60 * 60 * 24));
             const years = Math.floor(remainingDays / 365);
@@ -268,7 +327,8 @@
                     const description = document.getElementById(`description-${i}`).value;
                     const start = document.getElementById(`start-${i}`).value;
                     const end = document.getElementById(`end-${i}`).value;
-                    trackers.push({ id: i, text, description, start, end });
+                    const files = JSON.parse(localStorage.getItem(`tracker-files-${i}`) || '[]');
+                    trackers.push({ id: i, text, description, start, end, files });
                 }
             }
             localStorage.setItem('timeTrackers', JSON.stringify(trackers));
@@ -279,7 +339,8 @@
             if (savedTrackers) {
                 const trackers = JSON.parse(savedTrackers);
                 trackers.forEach(tracker => {
-                    addTracker(tracker.text, tracker.start, tracker.end, tracker.description);
+                    localStorage.setItem(`tracker-files-${tracker.id}`, JSON.stringify(tracker.files || []));
+                    addTracker(tracker.text, tracker.start, tracker.end, tracker.description, tracker.files || []);
                     if (tracker.id > trackerCount) trackerCount = tracker.id;
                 });
             } else {
