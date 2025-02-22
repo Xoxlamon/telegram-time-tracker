@@ -4,10 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, minimum-scale=0.5, user-scalable=yes">
     <title>Счетчик времени</title>
-    <!-- Добавляем Telegram Web App SDK -->
+    <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Добавляем иконку для рабочего стола -->
+    <!-- Иконка для браузера (favicon) -->
     <link rel="icon" type="image/png" href="favicon.png">
+    <!-- Иконка для главного экрана iOS -->
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <!-- Иконка для Android (через manifest) -->
+    <link rel="manifest" href="manifest.json">
+    <!-- Цвет темы для Android -->
+    <meta name="theme-color" content="#4CAF50">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -149,67 +155,4 @@
 
             document.getElementById(`time-${id}`).textContent = timeString;
 
-            const progressBar = document.getElementById(`bar-${id}`);
-            const progressText = document.getElementById(`progress-text-${id}`);
-            
-            if (endDate && !isNaN(endDate) && endDate > startDate) {
-                const totalTime = endDate - startDate;
-                const passedTime = now - startDate;
-                const progress = Math.min((passedTime / totalTime) * 100, 100);
-                
-                progressBar.style.display = 'block';
-                document.getElementById(`progress-${id}`).style.width = `${progress}%`;
-                
-                const remainingTime = endDate - now;
-                if (remainingTime > 0) {
-                    progressText.textContent = `${calculateRemainingTime(remainingTime)} (${progress.toFixed(1)}%)`;
-                } else {
-                    progressText.textContent = 'Срок истек';
-                }
-            } else {
-                progressBar.style.display = 'none';
-                progressText.textContent = '';
-            }
-        }
-
-        function saveTrackers() {
-            const trackers = [];
-            for (let i = 1; i <= trackerCount; i++) {
-                if (document.getElementById(`tracker-${i}`)) {
-                    const text = document.getElementById(`text-${i}`).value;
-                    const start = document.getElementById(`start-${i}`).value;
-                    const end = document.getElementById(`end-${i}`).value;
-                    trackers.push({ id: i, text, start, end });
-                }
-            }
-            localStorage.setItem('timeTrackers', JSON.stringify(trackers));
-        }
-
-        function loadTrackers() {
-            const savedTrackers = localStorage.getItem('timeTrackers');
-            if (savedTrackers) {
-                const trackers = JSON.parse(savedTrackers);
-                trackers.forEach(tracker => {
-                    addTracker(tracker.text, tracker.start, tracker.end);
-                    if (tracker.id > trackerCount) trackerCount = tracker.id;
-                });
-            } else {
-                addTracker();
-            }
-        }
-
-        window.Telegram.WebApp.ready();
-        window.Telegram.WebApp.expand();
-
-        setInterval(() => {
-            for (let i = 1; i <= trackerCount; i++) {
-                if (document.getElementById(`tracker-${i}`)) {
-                    updateTimer(i);
-                }
-            }
-        }, 1000);
-
-        loadTrackers();
-    </script>
-</body>
-</html>
+            const progress
