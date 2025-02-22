@@ -72,7 +72,7 @@
             box-sizing: border-box;
             resize: vertical;
         }
-        .description-display {
+        .description-display, .text-display {
             white-space: pre-wrap;
             margin: 10px 0;
         }
@@ -115,14 +115,16 @@
                 </div>
                 <div class="details">
                     <div class="input-group">
-                        <input type="text" id="text-${trackerCount}" placeholder="Введите свой текст" value="${text}" onchange="saveTrackers()">
+                        <label>Название:</label>
+                        <div id="text-display-${trackerCount}" class="text-display">${text}</div>
+                        <input type="text" id="text-${trackerCount}" placeholder="Введите свой текст" value="${text}" style="display:none;">
                     </div>
                     <div class="input-group">
                         <label>Описание (опционально):</label>
                         <div id="description-display-${trackerCount}" class="description-display">${description}</div>
                         <textarea id="description-${trackerCount}" placeholder="Введите описание" style="display:none;">${description}</textarea>
-                        <button onclick="editDescription(${trackerCount})">Редактировать описание</button>
-                        <button onclick="saveDescription(${trackerCount})" style="display:none;">Сохранить</button>
+                        <button onclick="editTracker(${trackerCount})">Редактировать</button>
+                        <button onclick="saveTracker(${trackerCount})" style="display:none;">Сохранить</button>
                     </div>
                     <div class="input-group">
                         <label>Прикрепить файлы:</label>
@@ -154,6 +156,7 @@
         function removeTracker(id) {
             const tracker = document.getElementById(`tracker-${id}`);
             if (tracker) {
+                localStorage.removeItem(`tracker-files-${id}`); // Удаляем файлы трекера
                 tracker.remove();
                 saveTrackers();
             }
@@ -189,29 +192,39 @@
             toggleAllButton.textContent = allCollapsed ? 'Развернуть все' : 'Свернуть все';
         }
 
-        function editDescription(id) {
-            const display = document.getElementById(`description-display-${id}`);
-            const textarea = document.getElementById(`description-${id}`);
-            const editButton = document.querySelector(`button[onclick="editDescription(${id})"]`);
-            const saveButton = document.querySelector(`button[onclick="saveDescription(${id})"]`);
+        function editTracker(id) {
+            const textDisplay = document.getElementById(`text-display-${id}`);
+            const textInput = document.getElementById(`text-${id}`);
+            const descDisplay = document.getElementById(`description-display-${id}`);
+            const descTextarea = document.getElementById(`description-${id}`);
+            const editButton = document.querySelector(`button[onclick="editTracker(${id})"]`);
+            const saveButton = document.querySelector(`button[onclick="saveTracker(${id})"]`);
             
-            display.style.display = 'none';
-            textarea.style.display = 'block';
+            textDisplay.style.display = 'none';
+            textInput.style.display = 'block';
+            descDisplay.style.display = 'none';
+            descTextarea.style.display = 'block';
             editButton.style.display = 'none';
             saveButton.style.display = 'inline';
         }
 
-        function saveDescription(id) {
-            const display = document.getElementById(`description-display-${id}`);
-            const textarea = document.getElementById(`description-${id}`);
-            const editButton = document.querySelector(`button[onclick="editDescription(${id})"]`);
-            const saveButton = document.querySelector(`button[onclick="saveDescription(${id})"]`);
+        function saveTracker(id) {
+            const textDisplay = document.getElementById(`text-display-${id}`);
+            const textInput = document.getElementById(`text-${id}`);
+            const descDisplay = document.getElementById(`description-display-${id}`);
+            const descTextarea = document.getElementById(`description-${id}`);
+            const editButton = document.querySelector(`button[onclick="editTracker(${id})"]`);
+            const saveButton = document.querySelector(`button[onclick="saveTracker(${id})"]`);
             
-            display.textContent = textarea.value;
-            display.style.display = 'block';
-            textarea.style.display = 'none';
+            textDisplay.textContent = textInput.value;
+            textDisplay.style.display = 'block';
+            textInput.style.display = 'none';
+            descDisplay.textContent = descTextarea.value;
+            descDisplay.style.display = 'block';
+            descTextarea.style.display = 'none';
             editButton.style.display = 'inline';
             saveButton.style.display = 'none';
+            updateTimer(id); // Обновляем время с новым названием
             saveTrackers();
         }
 
@@ -236,7 +249,7 @@
                 };
                 reader.readAsDataURL(file);
             });
-            fileInput.value = ''; // Очищаем input после загрузки
+            fileInput.value = '';
         }
 
         function renderFiles(files, id) {
