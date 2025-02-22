@@ -20,7 +20,6 @@
             height: 100vh;
             overflow-x: hidden;
             overflow-y: auto;
-            font-size: 14px; /* Увеличенный шрифт */
         }
         .tracker {
             border: 1px solid var(--tg-theme-hint-color, #ccc);
@@ -57,6 +56,7 @@
             max-width: 100%;
             width: 100%;
             box-sizing: border-box;
+            position: relative;
         }
         .input-group {
             margin: 8px 0;
@@ -87,7 +87,6 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 14px;
         }
         button i {
             margin-right: 5px;
@@ -121,7 +120,6 @@
             width: 100%;
             padding: 5px;
             box-sizing: border-box;
-            font-size: 14px;
         }
         textarea {
             height: 80px;
@@ -175,6 +173,37 @@
             display: flex;
             flex-direction: column;
         }
+        .settings-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .font-size-panel {
+            display: none;
+            position: absolute;
+            top: 40px;
+            right: 10px;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .font-size-panel.active {
+            display: block;
+        }
+        .delete-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px;
+            background: none;
+            border: none;
+            color: var(--tg-theme-button-text-color, #ffffff);
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -202,6 +231,16 @@
             <p id="stats-content"></p>
             <button onclick="hideStats()">Закрыть</button>
         </div>
+        <i class="fas fa-cog settings-icon" onclick="toggleFontSizePanel()"></i>
+        <div id="font-size-panel" class="font-size-panel">
+            <label for="font-size-select">Размер шрифта:</label>
+            <select id="font-size-select" onchange="changeFontSize()">
+                <option value="14">14px</option>
+                <option value="16" selected>16px</option>
+                <option value="18">18px</option>
+                <option value="20">20px</option>
+            </select>
+        </div>
     </div>
 
     <script>
@@ -210,6 +249,7 @@
         let currentFilter = 'all';
         let currentSort = localStorage.getItem('sortPreference') || 'start';
         const collapsedState = JSON.parse(localStorage.getItem('collapsedState')) || {};
+        let fontSize = localStorage.getItem('fontSize') || '16';
 
         function addTracker(text = "Событие началось", startDate = "", endDate = "", description = "", category = "Без категории", repeat = "none") {
             trackerCount++;
@@ -277,7 +317,7 @@
                     <p id="progress-text-${trackerCount}"></p>
                 </div>
                 <button onclick="toggleTracker(${trackerCount})"><i class="fas fa-angle-${collapsedState[trackerCount] ? 'down' : 'up'}"></i> ${collapsedState[trackerCount] ? 'Развернуть' : 'Свернуть'}</button>
-                <button onclick="removeTracker(${trackerCount})"><i class="fas fa-trash"></i> Удалить</button>
+                <button class="delete-button" onclick="removeTracker(${trackerCount})"><i class="fas fa-trash"></i></button>
             `;
             
             document.getElementById('trackers').appendChild(trackerDiv);
@@ -285,6 +325,7 @@
             saveTrackers();
             sortTrackers(currentSort);
             filterTrackers(currentFilter);
+            applyFontSize();
         }
 
         function updateStartDateDisplay(id) {
@@ -651,6 +692,29 @@
             document.getElementById('stats-modal').classList.remove('active');
         }
 
+        function toggleFontSizePanel() {
+            const panel = document.getElementById('font-size-panel');
+            panel.classList.toggle('active');
+        }
+
+        function changeFontSize() {
+            fontSize = document.getElementById('font-size-select').value;
+            localStorage.setItem('fontSize', fontSize);
+            applyFontSize();
+        }
+
+        function applyFontSize() {
+            document.body.style.fontSize = `${fontSize}px`;
+            const inputs = document.querySelectorAll('input, select, textarea, button, label, .text-display, .description-display, .start-date');
+            inputs.forEach(element => {
+                element.style.fontSize = `${fontSize}px`;
+            });
+            const compactDates = document.querySelectorAll('.start-date-compact');
+            compactDates.forEach(element => {
+                element.style.fontSize = `${Math.max(12, fontSize - 4)}px`; // Уменьшенный размер для свернутого вида
+            });
+        }
+
         function saveTrackers() {
             const trackers = [];
             for (let i = 1; i <= trackerCount; i++) {
@@ -681,6 +745,7 @@
             } else {
                 addTracker();
             }
+            applyFontSize();
         }
 
         window.Telegram.WebApp.ready();
