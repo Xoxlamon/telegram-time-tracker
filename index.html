@@ -11,26 +11,18 @@
     <meta name="theme-color" content="#4CAF50">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        :root {
-            --primary-color: #4CAF50;
-            --secondary-color: #2196F3;
-            --bg-color: #ffffff;
-            --text-color: #000000;
-            --hint-color: #888;
-            --border-color: #ccc;
-        }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
             height: 100vh;
             overflow-x: hidden;
             overflow-y: auto;
         }
         .tracker {
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
             padding: 10px;
             margin-bottom: 10px;
             border-radius: 5px;
@@ -62,10 +54,10 @@
             font-weight: bold;
         }
         .category-indicator.work {
-            background-color: var(--primary-color);
+            background-color: #4CAF50;
         }
         .category-indicator.personal {
-            background-color: var(--secondary-color);
+            background-color: #2196F3;
         }
         .container {
             text-align: center;
@@ -92,7 +84,7 @@
         }
         .progress-bar {
             width: 100%;
-            background-color: var(--bg-color);
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
             height: 10px;
             border-radius: 5px;
             margin-top: 5px;
@@ -111,8 +103,8 @@
         button {
             padding: 5px 10px;
             margin: 5px;
-            background-color: var(--primary-color);
-            color: white;
+            background-color: var(--tg-theme-button-color, #4CAF50);
+            color: var(--tg-theme-button-text-color, #ffffff);
             border: none;
             border-radius: 5px;
             cursor: pointer;
@@ -143,7 +135,7 @@
             bottom: 2px;
             right: 40px;
             font-size: 12px;
-            color: var(--hint-color);
+            color: var(--tg-theme-hint-color, #888);
         }
         textarea, select {
             width: 100%;
@@ -164,7 +156,7 @@
         }
         .start-date {
             font-size: 14px;
-            color: var(--hint-color);
+            color: var(--tg-theme-hint-color, #888);
             margin-bottom: 10px;
         }
         .filter-buttons {
@@ -175,7 +167,7 @@
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: var(--primary-color);
+            background-color: #4CAF50;
             color: white;
             padding: 10px 20px;
             border-radius: 5px;
@@ -183,7 +175,7 @@
         }
         .category-select {
             border-radius: 5px;
-            background-color: var(--bg-color);
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
         }
         .stats-modal {
             display: none;
@@ -191,8 +183,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: var(--bg-color);
-            border: 1px solid var(--border-color);
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
             padding: 20px;
             border-radius: 5px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
@@ -213,8 +205,8 @@
             position: absolute;
             top: 40px;
             right: 10px;
-            background-color: var(--bg-color);
-            border: 1px solid var(--border-color);
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
             padding: 10px;
             border-radius: 5px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
@@ -238,40 +230,31 @@
             padding: 5px;
             background: none;
             border: none;
-            color: var(--primary-color);
+            color: #4CAF50;
             cursor: pointer;
-        }
-        @media (max-width: 600px) {
-            .inline-group {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .inline-group label {
-                margin-bottom: 5px;
-            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Счетчики времени</h2>
-        <button onclick="toggleAllTrackers()" aria-label="Свернуть все"><i class="fas fa-compress"></i> Свернуть все</button>
+        <button onclick="toggleAllTrackers()"><i class="fas fa-compress"></i> Свернуть все</button>
         <div class="filter-buttons">
-            <input type="text" id="search" placeholder="Поиск по названию или описанию" oninput="filterTrackers(currentFilter)" aria-label="Поиск">
-            <button onclick="filterTrackers('all')" aria-label="Все"><i class="fas fa-list"></i> Все</button>
-            <button onclick="filterTrackers('active')" aria-label="Активные"><i class="fas fa-play"></i> Активные</button>
-            <button onclick="filterTrackers('expired')" aria-label="Завершенные"><i class="fas fa-stop"></i> Завершенные</button>
+            <input type="text" id="search" placeholder="Поиск по названию или описанию" oninput="filterTrackers(currentFilter)">
+            <button onclick="filterTrackers('all')"><i class="fas fa-list"></i> Все</button>
+            <button onclick="filterTrackers('active')"><i class="fas fa-play"></i> Активные</button>
+            <button onclick="filterTrackers('expired')"><i class="fas fa-stop"></i> Завершенные</button>
         </div>
         <div id="trackers"></div>
-        <button onclick="addTracker()" aria-label="Добавить отслеживание"><i class="fas fa-plus"></i> Добавить отслеживание</button>
-        <button onclick="showStats()" aria-label="Статистика"><i class="fas fa-chart-bar"></i> Статистика</button>
+        <button onclick="addTracker()"><i class="fas fa-plus"></i> Добавить отслеживание</button>
+        <button onclick="showStats()"><i class="fas fa-chart-bar"></i> Статистика</button>
         <div id="notification" class="notification">Сохранено</div>
         <div id="stats-modal" class="stats-modal">
             <h3>Статистика</h3>
             <p id="stats-content"></p>
-            <button onclick="hideStats()" aria-label="Закрыть">Закрыть</button>
+            <button onclick="hideStats()">Закрыть</button>
         </div>
-        <i class="fas fa-cog settings-icon" onclick="toggleSettingsPanel()" aria-label="Настройки"></i>
+        <i class="fas fa-cog settings-icon" onclick="toggleSettingsPanel()"></i>
         <div id="settings-panel" class="settings-panel">
             <label for="sort-select">Сортировка:</label>
             <select id="sort-select" onchange="sortTrackers(this.value)">
@@ -299,7 +282,7 @@
             trackerDiv.className = 'tracker';
             trackerDiv.id = `tracker-${trackerCount}`;
             if (collapsedState[trackerCount]) trackerDiv.classList.add('tracker-collapsed');
-
+            
             trackerDiv.innerHTML = `
                 <div class="category-indicator ${category === 'Рабочие' ? 'work' : category === 'Личные' ? 'personal' : ''}">
                     ${category === 'Рабочие' ? 'Рабочие' : category === 'Личные' ? 'Личные' : ''}
@@ -322,9 +305,9 @@
                         <label>Описание (опционально):</label>
                         <div id="description-display-${trackerCount}" class="description-display">${description}</div>
                         <textarea id="description-${trackerCount}" placeholder="Введите описание" style="display:none;" onblur="saveTracker(${trackerCount})">${description}</textarea>
-                        <button onclick="editTracker(${trackerCount})" aria-label="Редактировать"><i class="fas fa-edit"></i> Редактировать</button>
-                        <button onclick="saveTracker(${trackerCount})" style="display:none;" aria-label="Сохранить"><i class="fas fa-save"></i> Сохранить</button>
-                        <button onclick="cancelEdit(${trackerCount})" style="display:none;" aria-label="Отмена"><i class="fas fa-times"></i> Отмена</button>
+                        <button onclick="editTracker(${trackerCount})"><i class="fas fa-edit"></i> Редактировать</button>
+                        <button onclick="saveTracker(${trackerCount})" style="display:none;"><i class="fas fa-save"></i> Сохранить</button>
+                        <button onclick="cancelEdit(${trackerCount})" style="display:none;"><i class="fas fa-times"></i> Отмена</button>
                     </div>
                     <div class="input-group inline-group">
                         <div>
@@ -364,10 +347,10 @@
                     </div>
                     <p id="progress-text-${trackerCount}"></p>
                 </div>
-                <button onclick="toggleTracker(${trackerCount})" aria-label="Свернуть/Развернуть"><i class="fas fa-angle-${collapsedState[trackerCount] ? 'down' : 'up'}"></i> ${collapsedState[trackerCount] ? 'Развернуть' : 'Свернуть'}</button>
-                <button class="delete-button" onclick="confirmDelete(${trackerCount})" aria-label="Удалить"><i class="fas fa-trash"></i></button>
+                <button onclick="toggleTracker(${trackerCount})"><i class="fas fa-angle-${collapsedState[trackerCount] ? 'down' : 'up'}"></i> ${collapsedState[trackerCount] ? 'Развернуть' : 'Свернуть'}</button>
+                <button class="delete-button" onclick="confirmDelete(${trackerCount})"><i class="fas fa-trash"></i></button>
             `;
-
+            
             document.getElementById('trackers').appendChild(trackerDiv);
             updateTimer(trackerCount);
             saveTrackers();
@@ -477,7 +460,7 @@
             const editButton = document.querySelector(`button[onclick="editTracker(${id})"]`);
             const saveButton = document.querySelector(`button[onclick="saveTracker(${id})"]`);
             const cancelButton = document.querySelector(`button[onclick="cancelEdit(${id})"]`);
-
+            
             textDisplay.style.display = 'none';
             textInput.style.display = 'block';
             descDisplay.style.display = 'none';
@@ -492,7 +475,7 @@
             const startDate = new Date(document.getElementById(`start-${id}`).value);
             const endOption = document.getElementById(`end-option-${id}`).value;
             const endDate = endOption === 'custom' ? new Date(document.getElementById(`end-date-input-${id}`).value) : null;
-
+            
             if (!textInput.value.trim()) {
                 alert('Название не может быть пустым');
                 return;
@@ -508,7 +491,7 @@
             const editButton = document.querySelector(`button[onclick="editTracker(${id})"]`);
             const saveButton = document.querySelector(`button[onclick="saveTracker(${id})"]`);
             const cancelButton = document.querySelector(`button[onclick="cancelEdit(${id})"]`);
-
+            
             textDisplay.textContent = textInput.value;
             textDisplay.style.display = 'block';
             textInput.style.display = 'none';
@@ -531,7 +514,7 @@
             const editButton = document.querySelector(`button[onclick="editTracker(${id})"]`);
             const saveButton = document.querySelector(`button[onclick="saveTracker(${id})"]`);
             const cancelButton = document.querySelector(`button[onclick="cancelEdit(${id})"]`);
-
+            
             textInput.value = textDisplay.textContent;
             textDisplay.style.display = 'block';
             textInput.style.display = 'none';
@@ -599,17 +582,17 @@
             const progressText = document.getElementById(`progress-text-${id}`);
             const progressElement = document.getElementById(`progress-${id}`);
             const progressFullElement = document.getElementById(`progress-full-${id}`);
-
+            
             if (endDate && !isNaN(endDate) && endDate > startDate) {
                 const totalTime = endDate - startDate;
                 const passedTime = now - startDate;
                 const progress = Math.min((passedTime / totalTime) * 100, 100);
-
+                
                 progressBar.style.display = 'block';
                 progressFull.style.display = 'block';
                 progressElement.style.width = `${progress}%`;
                 progressFullElement.style.width = `${progress}%`;
-
+                
                 progressElement.classList.remove('near-complete', 'complete');
                 progressFullElement.classList.remove('near-complete', 'complete');
                 if (progress >= 100) {
@@ -645,7 +628,7 @@
             const endInput = document.getElementById(`end-date-input-${id}`);
             let newStart = new Date(startInput.value);
             let newEnd = new Date(endInput.value);
-
+            
             if (repeat === 'daily') {
                 newStart.setDate(newStart.getDate() + 1);
                 newEnd.setDate(newEnd.getDate() + 1);
@@ -656,7 +639,7 @@
                 newStart.setMonth(newStart.getMonth() + 1);
                 newEnd.setMonth(newEnd.getMonth() + 1);
             }
-
+            
             startInput.value = newStart.toISOString().split('T')[0];
             endInput.value = newEnd.toISOString().split('T')[0];
             document.getElementById(`end-option-${id}`).value = 'custom';
@@ -670,7 +653,7 @@
             localStorage.setItem('sortPreference', criteria);
             const trackersDiv = document.getElementById('trackers');
             const trackers = Array.from(trackersDiv.children);
-
+            
             trackers.sort((a, b) => {
                 const idA = a.id.split('-')[1];
                 const idB = b.id.split('-')[1];
