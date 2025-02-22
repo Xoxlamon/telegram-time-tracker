@@ -2,13 +2,14 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width CONCAT=device-width, initial-scale=1.0, maximum-scale=2.0, minimum-scale=0.5, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, minimum-scale=0.5, user-scalable=yes">
     <title>Счетчик времени</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4CAF50">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -22,14 +23,17 @@
         }
         .tracker {
             border: 1px solid var(--tg-theme-hint-color, #ccc);
-            padding: 15px;
-            margin-bottom: 15px;
+            padding: 10px;
+            margin-bottom: 10px;
             border-radius: 5px;
             transition: background-color 0.3s;
         }
         .tracker.expired {
             background-color: #ffcccc;
             border-color: #ff6666;
+        }
+        .tracker.hidden {
+            display: none;
         }
         .container {
             text-align: center;
@@ -38,7 +42,7 @@
             box-sizing: border-box;
         }
         .input-group {
-            margin: 10px 0;
+            margin: 8px 0;
         }
         .progress-bar {
             width: 100%;
@@ -49,9 +53,14 @@
         }
         .progress {
             height: 100%;
-            background-color: var(--tg-theme-button-color, #4CAF50);
             border-radius: 5px;
-            transition: width 0.3s;
+            transition: width 0.3s, background-color 0.3s;
+        }
+        .progress.near-complete {
+            background-color: #ff9800; /* Оранжевый при 80-99% */
+        }
+        .progress.complete {
+            background-color: #f44336; /* Красный при 100% */
         }
         button {
             padding: 5px 10px;
@@ -62,6 +71,9 @@
             border-radius: 5px;
             cursor: pointer;
         }
+        button i {
+            margin-right: 5px;
+        }
         .tracker-collapsed .details {
             display: none;
         }
@@ -69,6 +81,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin: 0;
+            padding: 5px 0;
+        }
+        .tracker-collapsed .summary p {
             margin: 0;
         }
         .tracker-collapsed .summary .progress-bar {
@@ -84,34 +100,88 @@
         }
         .description-display, .text-display {
             white-space: pre-wrap;
-            margin: 10px 0;
+            margin: 8px 0;
         }
-        .sort-buttons {
+        .sort-buttons, .filter-buttons {
             margin-bottom: 10px;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: none;
+        }
+        .category-select {
+            padding: 5px;
+            border-radius: 5px;
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+        }
+        .stats-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            max-width: 90%;
+        }
+        .stats-modal.active {
+            display: block;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Счетчики времени</h2>
-        <button onclick="toggleAllTrackers()">Свернуть все</button>
+        <button onclick="toggleAllTrackers()"><i class="fas fa-compress"></i> Свернуть все</button>
         <div class="sort-buttons">
-            <button onclick="sortTrackers('title')">Сортировать по названию</button>
-            <button onclick="sortTrackers('start')">Сортировать по дате начала</button>
+            <button onclick="sortTrackers('title')"><i class="fas fa-sort-alpha-down"></i> По названию</button>
+            <button onclick="sortTrackers('start')"><i class="fas fa-calendar-day"></i> По дате начала</button>
+            <button onclick="sortTrackers('end')"><i class="fas fa-calendar-times"></i> По дате окончания</button>
+            <button onclick="sortTrackers('status')"><i class="fas fa-check"></i> По статусу</button>
+        </div>
+        <div class="filter-buttons">
+            <input type="text" id="search" placeholder="Поиск по названию или описанию" oninput="filterTrackers(currentFilter)">
+            <button onclick="filterTrackers('all')"><i class="fas fa-list"></i> Все</button>
+            <button onclick="filterTrackers('active')"><i class="fas fa-play"></i> Активные</button>
+            <button onclick="filterTrackers('expired')"><i class="fas fa-stop"></i> Завершенные</button>
         </div>
         <div id="trackers"></div>
-        <button onclick="addTracker()">Добавить отслеживание</button>
+        <button onclick="addTracker()"><i class="fas fa-plus"></i> Добавить отслеживание</button>
+        <button onclick="exportTrackers()"><i class="fas fa-download"></i> Экспорт</button>
+        <input type="file" id="import-file" accept=".json" onchange="importTrackers()" style="display:none;">
+        <button onclick="document.getElementById('import-file').click()"><i class="fas fa-upload"></i> Импорт</button>
+        <button onclick="showStats()"><i class="fas fa-chart-bar"></i> Статистика</button>
+        <div id="notification" class="notification">Сохранено</div>
+        <div id="stats-modal" class="stats-modal">
+            <h3>Статистика</h3>
+            <p id="stats-content"></p>
+            <button onclick="hideStats()">Закрыть</button>
+        </div>
     </div>
 
     <script>
         let trackerCount = 0;
         let allCollapsed = false;
+        let currentFilter = 'all';
+        let currentSort = localStorage.getItem('sortPreference') || 'title';
+        const collapsedState = JSON.parse(localStorage.getItem('collapsedState')) || {};
 
-        function addTracker(text = "Событие началось", startDate = "", endDate = "", description = "") {
+        function addTracker(text = "Событие началось", startDate = "", endDate = "", description = "", category = "Без категории", repeat = "none") {
             trackerCount++;
             const trackerDiv = document.createElement('div');
             trackerDiv.className = 'tracker';
             trackerDiv.id = `tracker-${trackerCount}`;
+            if (collapsedState[trackerCount]) trackerDiv.classList.add('tracker-collapsed');
             
             trackerDiv.innerHTML = `
                 <div class="summary">
@@ -130,9 +200,27 @@
                         <label>Описание (опционально):</label>
                         <div id="description-display-${trackerCount}" class="description-display">${description}</div>
                         <textarea id="description-${trackerCount}" placeholder="Введите описание" style="display:none;" onblur="saveTracker(${trackerCount})">${description}</textarea>
-                        <button onclick="editTracker(${trackerCount})">Редактировать</button>
-                        <button onclick="saveTracker(${trackerCount})" style="display:none;">Сохранить</button>
-                        <button onclick="cancelEdit(${trackerCount})" style="display:none;">Отмена</button>
+                        <button onclick="editTracker(${trackerCount})"><i class="fas fa-edit"></i> Редактировать</button>
+                        <button onclick="saveTracker(${trackerCount})" style="display:none;"><i class="fas fa-save"></i> Сохранить</button>
+                        <button onclick="cancelEdit(${trackerCount})" style="display:none;"><i class="fas fa-times"></i> Отмена</button>
+                    </div>
+                    <div class="input-group">
+                        <label>Категория:</label>
+                        <select id="category-${trackerCount}" class="category-select" onchange="saveTrackers()">
+                            <option value="Без категории" ${category === "Без категории" ? "selected" : ""}>Без категории</option>
+                            <option value="Работа" ${category === "Работа" ? "selected" : ""}>Работа</option>
+                            <option value="Личное" ${category === "Личное" ? "selected" : ""}>Личное</option>
+                            <option value="Учеба" ${category === "Учеба" ? "selected" : ""}>Учеба</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Повторение:</label>
+                        <select id="repeat-${trackerCount}" onchange="saveTrackers()">
+                            <option value="none" ${repeat === "none" ? "selected" : ""}>Нет</option>
+                            <option value="daily" ${repeat === "daily" ? "selected" : ""}>Ежедневно</option>
+                            <option value="weekly" ${repeat === "weekly" ? "selected" : ""}>Еженедельно</option>
+                            <option value="monthly" ${repeat === "monthly" ? "selected" : ""}>Ежемесячно</option>
+                        </select>
                     </div>
                     <div class="input-group">
                         <label>Дата начала:</label>
@@ -147,19 +235,23 @@
                     </div>
                     <p id="progress-text-${trackerCount}"></p>
                 </div>
-                <button onclick="toggleTracker(${trackerCount})">Свернуть</button>
-                <button onclick="removeTracker(${trackerCount})">Удалить</button>
+                <button onclick="toggleTracker(${trackerCount})"><i class="fas fa-angle-${collapsedState[trackerCount] ? 'down' : 'up'}"></i> ${collapsedState[trackerCount] ? 'Развернуть' : 'Свернуть'}</button>
+                <button onclick="removeTracker(${trackerCount})"><i class="fas fa-trash"></i> Удалить</button>
             `;
             
             document.getElementById('trackers').appendChild(trackerDiv);
             updateTimer(trackerCount);
             saveTrackers();
+            sortTrackers(currentSort);
+            filterTrackers(currentFilter);
         }
 
         function removeTracker(id) {
             const tracker = document.getElementById(`tracker-${id}`);
             if (tracker) {
                 tracker.remove();
+                delete collapsedState[id];
+                localStorage.setItem('collapsedState', JSON.stringify(collapsedState));
                 saveTrackers();
             }
         }
@@ -169,11 +261,14 @@
             const toggleButton = tracker.querySelector('button[onclick^="toggleTracker"]');
             if (tracker.classList.contains('tracker-collapsed')) {
                 tracker.classList.remove('tracker-collapsed');
-                toggleButton.textContent = 'Свернуть';
+                toggleButton.innerHTML = '<i class="fas fa-angle-up"></i> Свернуть';
+                collapsedState[id] = false;
             } else {
                 tracker.classList.add('tracker-collapsed');
-                toggleButton.textContent = 'Развернуть';
+                toggleButton.innerHTML = '<i class="fas fa-angle-down"></i> Развернуть';
+                collapsedState[id] = true;
             }
+            localStorage.setItem('collapsedState', JSON.stringify(collapsedState));
         }
 
         function toggleAllTrackers() {
@@ -185,13 +280,16 @@
                 const toggleButton = tracker.querySelector('button[onclick^="toggleTracker"]');
                 if (allCollapsed) {
                     tracker.classList.add('tracker-collapsed');
-                    toggleButton.textContent = 'Развернуть';
+                    toggleButton.innerHTML = '<i class="fas fa-angle-down"></i> Развернуть';
+                    collapsedState[id] = true;
                 } else {
                     tracker.classList.remove('tracker-collapsed');
-                    toggleButton.textContent = 'Свернуть';
+                    toggleButton.innerHTML = '<i class="fas fa-angle-up"></i> Свернуть';
+                    collapsedState[id] = false;
                 }
             });
-            toggleAllButton.textContent = allCollapsed ? 'Развернуть все' : 'Свернуть все';
+            localStorage.setItem('collapsedState', JSON.stringify(collapsedState));
+            toggleAllButton.innerHTML = `<i class="fas fa-${allCollapsed ? 'expand' : 'compress'}"></i> ${allCollapsed ? 'Развернуть все' : 'Свернуть все'}`;
         }
 
         function editTracker(id) {
@@ -213,8 +311,20 @@
         }
 
         function saveTracker(id) {
-            const textDisplay = document.getElementById(`text-display-${id}`);
             const textInput = document.getElementById(`text-${id}`);
+            const startDate = new Date(document.getElementById(`start-${id}`).value);
+            const endDate = document.getElementById(`end-${id}`).value ? new Date(document.getElementById(`end-${id}`).value) : null;
+            
+            if (!textInput.value.trim()) {
+                alert('Название не может быть пустым');
+                return;
+            }
+            if (endDate && startDate > endDate) {
+                alert('Дата окончания не может быть раньше даты начала');
+                return;
+            }
+
+            const textDisplay = document.getElementById(`text-display-${id}`);
             const descDisplay = document.getElementById(`description-display-${id}`);
             const descTextarea = document.getElementById(`description-${id}`);
             const editButton = document.querySelector(`button[onclick="editTracker(${id})"]`);
@@ -232,6 +342,7 @@
             cancelButton.style.display = 'none';
             updateTimer(id);
             saveTrackers();
+            showNotification();
         }
 
         function cancelEdit(id) {
@@ -254,6 +365,14 @@
             cancelButton.style.display = 'none';
         }
 
+        function showNotification() {
+            const notification = document.getElementById('notification');
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 2000);
+        }
+
         function calculateRemainingTime(remainingTime) {
             const remainingDays = Math.ceil(remainingTime / (1000 * 60 * 60 * 24));
             const years = Math.floor(remainingDays / 365);
@@ -271,9 +390,11 @@
 
         function updateTimer(id) {
             const tracker = document.getElementById(`tracker-${id}`);
+            if (!tracker || !tracker.getBoundingClientRect().top) return; // Оптимизация: обновляем только видимые трекеры
             const startDate = new Date(document.getElementById(`start-${id}`).value);
             const endDate = document.getElementById(`end-${id}`).value ? new Date(document.getElementById(`end-${id}`).value) : null;
             const customText = document.getElementById(`text-${id}`).value || 'Событие началось';
+            const repeat = document.getElementById(`repeat-${id}`).value;
             const now = new Date();
 
             if (!startDate || isNaN(startDate)) {
@@ -281,11 +402,11 @@
                 return;
             }
 
-            const diffTime = Math.abs(now - startDate);
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            const years = Math.floor(diffDays / 365);
-            const months = Math.floor((diffDays % 365) / 30);
-            const days = diffDays % 30;
+            let diffTime = Math.abs(now - startDate);
+            let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            let years = Math.floor(diffDays / 365);
+            let months = Math.floor((diffDays % 365) / 30);
+            let days = diffDays % 30;
 
             let timeString = `${customText} `;
             if (years > 0) timeString += `${years} лет `;
@@ -297,6 +418,8 @@
             const progressBar = document.getElementById(`bar-${id}`);
             const progressFull = document.getElementById(`bar-full-${id}`);
             const progressText = document.getElementById(`progress-text-${id}`);
+            const progressElement = document.getElementById(`progress-${id}`);
+            const progressFullElement = document.getElementById(`progress-full-${id}`);
             
             if (endDate && !isNaN(endDate) && endDate > startDate) {
                 const totalTime = endDate - startDate;
@@ -305,9 +428,19 @@
                 
                 progressBar.style.display = 'block';
                 progressFull.style.display = 'block';
-                document.getElementById(`progress-${id}`).style.width = `${progress}%`;
-                document.getElementById(`progress-full-${id}`).style.width = `${progress}%`;
+                progressElement.style.width = `${progress}%`;
+                progressFullElement.style.width = `${progress}%`;
                 
+                progressElement.classList.remove('near-complete', 'complete');
+                progressFullElement.classList.remove('near-complete', 'complete');
+                if (progress >= 100) {
+                    progressElement.classList.add('complete');
+                    progressFullElement.classList.add('complete');
+                } else if (progress >= 80) {
+                    progressElement.classList.add('near-complete');
+                    progressFullElement.classList.add('near-complete');
+                }
+
                 const remainingTime = endDate - now;
                 if (remainingTime > 0) {
                     progressText.textContent = `${calculateRemainingTime(remainingTime)} (${progress.toFixed(1)}%)`;
@@ -315,6 +448,9 @@
                 } else {
                     progressText.textContent = 'Срок истек';
                     tracker.classList.add('expired');
+                    if (repeat !== 'none') {
+                        resetRepeatedTracker(id, repeat);
+                    }
                 }
             } else {
                 progressBar.style.display = 'none';
@@ -322,9 +458,35 @@
                 progressText.textContent = '';
                 tracker.classList.remove('expired');
             }
+            filterTrackers(currentFilter);
+        }
+
+        function resetRepeatedTracker(id, repeat) {
+            const startInput = document.getElementById(`start-${id}`);
+            const endInput = document.getElementById(`end-${id}`);
+            let newStart = new Date(startInput.value);
+            let newEnd = new Date(endInput.value);
+            
+            if (repeat === 'daily') {
+                newStart.setDate(newStart.getDate() + 1);
+                newEnd.setDate(newEnd.getDate() + 1);
+            } else if (repeat === 'weekly') {
+                newStart.setDate(newStart.getDate() + 7);
+                newEnd.setDate(newEnd.getDate() + 7);
+            } else if (repeat === 'monthly') {
+                newStart.setMonth(newStart.getMonth() + 1);
+                newEnd.setMonth(newEnd.getMonth() + 1);
+            }
+            
+            startInput.value = newStart.toISOString().split('T')[0];
+            endInput.value = newEnd.toISOString().split('T')[0];
+            updateTimer(id);
+            saveTrackers();
         }
 
         function sortTrackers(criteria) {
+            currentSort = criteria;
+            localStorage.setItem('sortPreference', criteria);
             const trackersDiv = document.getElementById('trackers');
             const trackers = Array.from(trackersDiv.children);
             
@@ -339,10 +501,103 @@
                     const startA = new Date(document.getElementById(`start-${idA}`).value || '9999-12-31');
                     const startB = new Date(document.getElementById(`start-${idB}`).value || '9999-12-31');
                     return startA - startB;
+                } else if (criteria === 'end') {
+                    const endA = new Date(document.getElementById(`end-${idA}`).value || '9999-12-31');
+                    const endB = new Date(document.getElementById(`end-${idB}`).value || '9999-12-31');
+                    return endA - endB;
+                } else if (criteria === 'status') {
+                    const endA = document.getElementById(`end-${idA}`).value ? new Date(document.getElementById(`end-${idA}`).value) : null;
+                    const endB = document.getElementById(`end-${idB}`).value ? new Date(document.getElementById(`end-${idB}`).value) : null;
+                    const now = new Date();
+                    const isExpiredA = endA && endA < now;
+                    const isExpiredB = endB && endB < now;
+                    return (isExpiredA === isExpiredB) ? 0 : isExpiredA ? 1 : -1; // Активные выше
                 }
             });
 
             trackers.forEach(tracker => trackersDiv.appendChild(tracker));
+        }
+
+        function filterTrackers(filter) {
+            currentFilter = filter;
+            const trackers = document.querySelectorAll('.tracker');
+            const searchValue = document.getElementById('search').value.toLowerCase();
+            trackers.forEach(tracker => {
+                const id = tracker.id.split('-')[1];
+                const endDate = document.getElementById(`end-${id}`).value ? new Date(document.getElementById(`end-${id}`).value) : null;
+                const now = new Date();
+                const isExpired = endDate && endDate < now;
+                const text = document.getElementById(`text-${id}`).value.toLowerCase();
+                const description = document.getElementById(`description-${id}`).value.toLowerCase();
+
+                const matchesSearch = text.includes(searchValue) || description.includes(searchValue);
+                let shouldShow = false;
+
+                if (filter === 'all') {
+                    shouldShow = true;
+                } else if (filter === 'active') {
+                    shouldShow = !isExpired || !endDate;
+                } else if (filter === 'expired') {
+                    shouldShow = isExpired;
+                }
+
+                tracker.classList.toggle('hidden', !(shouldShow && matchesSearch));
+            });
+        }
+
+        function exportTrackers() {
+            const trackers = JSON.parse(localStorage.getItem('timeTrackers') || '[]');
+            const blob = new Blob([JSON.stringify(trackers, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'trackers.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importTrackers() {
+            const fileInput = document.getElementById('import-file');
+            const file = fileInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const importedTrackers = JSON.parse(e.target.result);
+                    localStorage.setItem('timeTrackers', JSON.stringify(importedTrackers));
+                    document.getElementById('trackers').innerHTML = '';
+                    trackerCount = 0;
+                    loadTrackers();
+                };
+                reader.readAsText(file);
+            }
+            fileInput.value = '';
+        }
+
+        function showStats() {
+            const trackers = JSON.parse(localStorage.getItem('timeTrackers') || '[]');
+            const now = new Date();
+            const active = trackers.filter(t => !t.end || new Date(t.end) > now).length;
+            const expired = trackers.filter(t => t.end && new Date(t.end) <= now).length;
+            const totalTime = trackers.reduce((sum, t) => {
+                if (t.start && t.end) {
+                    const diff = new Date(t.end) - new Date(t.start);
+                    return sum + (diff > 0 ? diff : 0);
+                }
+                return sum;
+            }, 0);
+            const avgTime = expired > 0 ? totalTime / expired / (1000 * 60 * 60 * 24) : 0;
+
+            const statsContent = `
+                Активных трекеров: ${active}<br>
+                Завершенных трекеров: ${expired}<br>
+                Среднее время выполнения: ${avgTime.toFixed(1)} дней
+            `;
+            document.getElementById('stats-content').innerHTML = statsContent;
+            document.getElementById('stats-modal').classList.add('active');
+        }
+
+        function hideStats() {
+            document.getElementById('stats-modal').classList.remove('active');
         }
 
         function saveTrackers() {
@@ -353,7 +608,9 @@
                     const description = document.getElementById(`description-${i}`).value;
                     const start = document.getElementById(`start-${i}`).value;
                     const end = document.getElementById(`end-${i}`).value;
-                    trackers.push({ id: i, text, description, start, end });
+                    const category = document.getElementById(`category-${i}`).value;
+                    const repeat = document.getElementById(`repeat-${i}`).value;
+                    trackers.push({ id: i, text, description, start, end, category, repeat });
                 }
             }
             localStorage.setItem('timeTrackers', JSON.stringify(trackers));
@@ -364,9 +621,11 @@
             if (savedTrackers) {
                 const trackers = JSON.parse(savedTrackers);
                 trackers.forEach(tracker => {
-                    addTracker(tracker.text, tracker.start, tracker.end, tracker.description);
+                    addTracker(tracker.text, tracker.start, tracker.end, tracker.description, tracker.category, tracker.repeat);
                     if (tracker.id > trackerCount) trackerCount = tracker.id;
                 });
+                sortTrackers(currentSort);
+                filterTrackers(currentFilter);
             } else {
                 addTracker();
             }
@@ -376,11 +635,11 @@
         window.Telegram.WebApp.expand();
 
         setInterval(() => {
-            for (let i = 1; i <= trackerCount; i++) {
-                if (document.getElementById(`tracker-${i}`)) {
-                    updateTimer(i);
-                }
-            }
+            const visibleTrackers = Array.from(document.querySelectorAll('.tracker:not(.hidden)'));
+            visibleTrackers.forEach(tracker => {
+                const id = tracker.id.split('-')[1];
+                updateTimer(id);
+            });
         }, 1000);
 
         loadTrackers();
