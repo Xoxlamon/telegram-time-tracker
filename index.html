@@ -25,6 +25,11 @@
             padding: 15px;
             margin-bottom: 15px;
             border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .tracker.expired {
+            background-color: #ffcccc;
+            border-color: #ff6666;
         }
         .container {
             text-align: center;
@@ -38,16 +43,14 @@
         .progress-bar {
             width: 100%;
             background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
-            height: 20px;
-            border-radius: 10px;
-            margin-top: 10px;
-            display: none;
+            height: 10px;
+            border-radius: 5px;
+            margin-top: 5px;
         }
         .progress {
-            width: 0%;
             height: 100%;
             background-color: var(--tg-theme-button-color, #4CAF50);
-            border-radius: 10px;
+            border-radius: 5px;
             transition: width 0.3s;
         }
         button {
@@ -63,7 +66,14 @@
             display: none;
         }
         .tracker-collapsed .summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin: 0;
+        }
+        .tracker-collapsed .summary .progress-bar {
+            width: 30%;
+            display: block;
         }
         textarea {
             width: 100%;
@@ -97,12 +107,19 @@
             max-width: 100%;
             border-radius: 5px;
         }
+        .sort-buttons {
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Счетчики времени</h2>
         <button onclick="toggleAllTrackers()">Свернуть все</button>
+        <div class="sort-buttons">
+            <button onclick="sortTrackers('title')">Сортировать по названию</button>
+            <button onclick="sortTrackers('start')">Сортировать по дате начала</button>
+        </div>
         <div id="trackers"></div>
         <button onclick="addTracker()">Добавить отслеживание</button>
     </div>
@@ -110,6 +127,7 @@
     <script>
         let trackerCount = 0;
         let allCollapsed = false;
+        const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 МБ
 
         function addTracker(text = "Событие началось", startDate = "", endDate = "", description = "", files = []) {
             trackerCount++;
@@ -120,6 +138,9 @@
             trackerDiv.innerHTML = `
                 <div class="summary">
                     <p id="time-${trackerCount}"></p>
+                    <div class="progress-bar" id="bar-${trackerCount}" style="display:none;">
+                        <div class="progress" id="progress-${trackerCount}"></div>
+                    </div>
                 </div>
                 <div class="details">
                     <div class="input-group">
@@ -130,9 +151,10 @@
                     <div class="input-group">
                         <label>Описание (опционально):</label>
                         <div id="description-display-${trackerCount}" class="description-display">${description}</div>
-                        <textarea id="description-${trackerCount}" placeholder="Введите описание" style="display:none;">${description}</textarea>
+                        <textarea id="description-${trackerCount}" placeholder="Введите описание" style="display:none;" onblur="saveTracker(${trackerCount})">${description}</textarea>
                         <button onclick="editTracker(${trackerCount})">Редактировать</button>
                         <button onclick="saveTracker(${trackerCount})" style="display:none;">Сохранить</button>
+                        <button onclick="cancelEdit(${trackerCount})" style="display:none;">Отмена</button>
                     </div>
                     <div class="input-group">
                         <label>Прикрепить файлы:</label>
@@ -148,8 +170,8 @@
                         <label>Дата окончания (опционально):</label>
                         <input type="date" id="end-${trackerCount}" value="${endDate}" onchange="updateTimer(${trackerCount}); saveTrackers()">
                     </div>
-                    <div class="progress-bar" id="bar-${trackerCount}">
-                        <div class="progress" id="progress-${trackerCount}"></div>
+                    <div class="progress-bar" id="bar-full-${trackerCount}" style="display:none;">
+                        <div class="progress" id="progress-full-${trackerCount}"></div>
                     </div>
                     <p id="progress-text-${trackerCount}"></p>
                 </div>
@@ -208,6 +230,7 @@
             const descTextarea = document.getElementById(`description-${id}`);
             const editButton = document.querySelector(`button[onclick="editTracker(${id})"]`);
             const saveButton = document.querySelector(`button[onclick="saveTracker(${id})"]`);
+            const cancelButton = document.querySelector(`button[onclick="cancelEdit(${id})"]`);
             
             textDisplay.style.display = 'none';
             textInput.style.display = 'block';
@@ -215,6 +238,7 @@
             descTextarea.style.display = 'block';
             editButton.style.display = 'none';
             saveButton.style.display = 'inline';
+            cancelButton.style.display = 'inline';
         }
 
         function saveTracker(id) {
@@ -224,6 +248,7 @@
             const descTextarea = document.getElementById(`description-${id}`);
             const editButton = document.querySelector(`button[onclick="editTracker(${id})"]`);
             const saveButton = document.querySelector(`button[onclick="saveTracker(${id})"]`);
+            const cancelButton = document.querySelector(`button[onclick="cancelEdit(${id})"]`);
             
             textDisplay.textContent = textInput.value;
             textDisplay.style.display = 'block';
@@ -233,8 +258,29 @@
             descTextarea.style.display = 'none';
             editButton.style.display = 'inline';
             saveButton.style.display = 'none';
+            cancelButton.style.display = 'none';
             updateTimer(id);
             saveTrackers();
+        }
+
+        function cancelEdit(id) {
+            const textDisplay = document.getElementById(`text-display-${id}`);
+            const textInput = document.getElementById(`text-${id}`);
+            const descDisplay = document.getElementById(`description-display-${id}`);
+            const descTextarea = document.getElementById(`description-${id}`);
+            const editButton = document.querySelector(`button[onclick="editTracker(${id})"]`);
+            const saveButton = document.querySelector(`button[onclick="saveTracker(${id})"]`);
+            const cancelButton = document.querySelector(`button[onclick="cancelEdit(${id})"]`);
+            
+            textInput.value = textDisplay.textContent;
+            textDisplay.style.display = 'block';
+            textInput.style.display = 'none';
+            descTextarea.value = descDisplay.textContent;
+            descDisplay.style.display = 'block';
+            descTextarea.style.display = 'none';
+            editButton.style.display = 'inline';
+            saveButton.style.display = 'none';
+            cancelButton.style.display = 'none';
         }
 
         function attachFiles(id) {
@@ -243,6 +289,10 @@
             const files = Array.from(fileInput.files);
 
             files.forEach(file => {
+                if (file.size > MAX_FILE_SIZE) {
+                    alert(`Файл "${file.name}" слишком большой (максимум ${MAX_FILE_SIZE / 1024 / 1024} МБ).`);
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const fileData = {
@@ -278,7 +328,7 @@
 
             if (!file) return;
 
-            previewDiv.innerHTML = ''; // Очищаем предыдущий превью
+            previewDiv.innerHTML = '';
             previewDiv.style.display = 'block';
 
             if (file.type.startsWith('image/')) {
@@ -303,7 +353,7 @@
             files.splice(index, 1);
             localStorage.setItem(`tracker-files-${id}`, JSON.stringify(files));
             document.getElementById(`file-list-${id}`).innerHTML = renderFiles(files, id);
-            document.getElementById(`file-preview-${id}`).style.display = 'none'; // Скрываем превью при удалении
+            document.getElementById(`file-preview-${id}`).style.display = 'none';
             saveTrackers();
         }
 
@@ -323,9 +373,9 @@
         }
 
         function updateTimer(id) {
+            const tracker = document.getElementById(`tracker-${id}`);
             const startDate = new Date(document.getElementById(`start-${id}`).value);
-            const endDate = document.getElementById(`end-${id}`).value ? 
-                new Date(document.getElementById(`end-${id}`).value) : null;
+            const endDate = document.getElementById(`end-${id}`).value ? new Date(document.getElementById(`end-${id}`).value) : null;
             const customText = document.getElementById(`text-${id}`).value || 'Событие началось';
             const now = new Date();
 
@@ -348,6 +398,7 @@
             document.getElementById(`time-${id}`).textContent = timeString;
 
             const progressBar = document.getElementById(`bar-${id}`);
+            const progressFull = document.getElementById(`bar-full-${id}`);
             const progressText = document.getElementById(`progress-text-${id}`);
             
             if (endDate && !isNaN(endDate) && endDate > startDate) {
@@ -356,18 +407,45 @@
                 const progress = Math.min((passedTime / totalTime) * 100, 100);
                 
                 progressBar.style.display = 'block';
+                progressFull.style.display = 'block';
                 document.getElementById(`progress-${id}`).style.width = `${progress}%`;
+                document.getElementById(`progress-full-${id}`).style.width = `${progress}%`;
                 
                 const remainingTime = endDate - now;
                 if (remainingTime > 0) {
                     progressText.textContent = `${calculateRemainingTime(remainingTime)} (${progress.toFixed(1)}%)`;
+                    tracker.classList.remove('expired');
                 } else {
                     progressText.textContent = 'Срок истек';
+                    tracker.classList.add('expired');
                 }
             } else {
                 progressBar.style.display = 'none';
+                progressFull.style.display = 'none';
                 progressText.textContent = '';
+                tracker.classList.remove('expired');
             }
+        }
+
+        function sortTrackers(criteria) {
+            const trackersDiv = document.getElementById('trackers');
+            const trackers = Array.from(trackersDiv.children);
+            
+            trackers.sort((a, b) => {
+                const idA = a.id.split('-')[1];
+                const idB = b.id.split('-')[1];
+                if (criteria === 'title') {
+                    const textA = document.getElementById(`text-${idA}`).value;
+                    const textB = document.getElementById(`text-${idB}`).value;
+                    return textA.localeCompare(textB);
+                } else if (criteria === 'start') {
+                    const startA = new Date(document.getElementById(`start-${idA}`).value || '9999-12-31');
+                    const startB = new Date(document.getElementById(`start-${idB}`).value || '9999-12-31');
+                    return startA - startB;
+                }
+            });
+
+            trackers.forEach(tracker => trackersDiv.appendChild(tracker));
         }
 
         function saveTrackers() {
