@@ -117,8 +117,8 @@
         }
         .tracker-collapsed .summary {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            align-items: flex-start;
             margin: 0;
             padding: 5px 0 5px 30px;
             position: relative;
@@ -127,15 +127,8 @@
             margin: 0;
         }
         .tracker-collapsed .summary .progress-bar {
-            width: 30%;
+            width: 100%;
             display: block;
-        }
-        .tracker-collapsed .summary .start-date-compact {
-            position: absolute;
-            bottom: 2px;
-            right: 40px;
-            font-size: 12px;
-            color: var(--tg-theme-hint-color, #888);
         }
         textarea, select {
             width: 100%;
@@ -154,9 +147,10 @@
             white-space: pre-wrap;
             margin: 8px 0;
         }
-        .start-date-compact {
-            font-size: 12px;
+        .start-date {
+            font-size: 14px;
             color: var(--tg-theme-hint-color, #888);
+            margin-bottom: 10px;
         }
         .filter-buttons {
             margin-bottom: 10px;
@@ -232,6 +226,11 @@
             color: #4CAF50;
             cursor: pointer;
         }
+        .countdown {
+            font-size: 14px;
+            color: var(--tg-theme-text-color, #000000);
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -286,12 +285,13 @@
                 <div class="category-indicator ${category === 'Рабочие' ? 'work' : category === 'Личные' ? 'personal' : ''}">
                     ${category === 'Рабочие' ? 'Рабочие' : category === 'Личные' ? 'Личные' : ''}
                 </div>
+                <div class="start-date" id="start-date-display-${trackerCount}">${startDate ? new Date(startDate).toLocaleDateString('ru-RU') : 'Нет даты начала'}</div>
                 <div class="summary">
                     <p id="time-${trackerCount}"></p>
                     <div class="progress-bar" id="bar-${trackerCount}" style="display:none;">
                         <div class="progress" id="progress-${trackerCount}"></div>
                     </div>
-                    <span class="start-date-compact" id="start-date-compact-${trackerCount}">${startDate ? new Date(startDate).toLocaleDateString('ru-RU') : 'Нет даты начала'}</span>
+                    <span class="countdown" id="countdown-${trackerCount}"></span>
                 </div>
                 <div class="details">
                     <div class="input-group">
@@ -359,9 +359,9 @@
 
         function updateStartDateDisplay(id) {
             const startDate = document.getElementById(`start-${id}`).value;
-            const compact = document.getElementById(`start-date-compact-${id}`);
+            const display = document.getElementById(`start-date-display-${id}`);
             const dateStr = startDate ? new Date(startDate).toLocaleDateString('ru-RU') : 'Нет даты начала';
-            compact.textContent = dateStr;
+            display.textContent = dateStr;
         }
 
         function updateCategoryIndicator(id) {
@@ -530,19 +530,14 @@
             }, 2000);
         }
 
-        function calculateRemainingTime(remainingTime) {
-            const remainingDays = Math.ceil(remainingTime / (1000 * 60 * 60 * 24));
-            const years = Math.floor(remainingDays / 365);
-            const months = Math.floor((remainingDays % 365) / 30);
-            const weeks = Math.floor((remainingDays % 30) / 7);
-            const days = remainingDays % 7;
-
-            let result = 'Осталось: ';
-            if (years > 0) result += `${years} лет `;
-            if (months > 0) result += `${months} месяцев `;
-            if (weeks > 0) result += `${weeks} недель `;
-            if (days > 0) result += `${days} дней`;
-            return result.trim();
+        function formatCountdown(remainingTime) {
+            if (remainingTime <= 0) return 'Срок истек';
+            const seconds = Math.floor(remainingTime / 1000);
+            const days = Math.floor(seconds / (3600 * 24));
+            const hours = Math.floor((seconds % (3600 * 24)) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${days}д ${hours}ч ${minutes}м ${secs}с`;
         }
 
         function updateTimer(id) {
@@ -557,6 +552,7 @@
 
             if (!startDate || isNaN(startDate)) {
                 document.getElementById(`time-${id}`).textContent = 'Выберите дату начала';
+                document.getElementById(`countdown-${id}`).textContent = '';
                 return;
             }
 
@@ -578,12 +574,14 @@
             const progressText = document.getElementById(`progress-text-${id}`);
             const progressElement = document.getElementById(`progress-${id}`);
             const progressFullElement = document.getElementById(`progress-full-${id}`);
+            const countdownElement = document.getElementById(`countdown-${id}`);
             
             if (endDate && !isNaN(endDate) && endDate > startDate) {
                 const totalTime = endDate - startDate;
                 const passedTime = now - startDate;
                 const progress = Math.min((passedTime / totalTime) * 100, 100);
-                
+                const remainingTime = endDate - now;
+
                 progressBar.style.display = 'block';
                 progressFull.style.display = 'block';
                 progressElement.style.width = `${progress}%`;
@@ -599,12 +597,13 @@
                     progressFullElement.classList.add('near-complete');
                 }
 
-                const remainingTime = endDate - now;
                 if (remainingTime > 0) {
-                    progressText.textContent = `${calculateRemainingTime(remainingTime)} (${progress.toFixed(1)}%)`;
+                    countdownElement.textContent = `Осталось: ${formatCountdown(remainingTime)}`;
+                    progressText.textContent = `Прогресс: ${progress.toFixed(1)}%`;
                     tracker.classList.remove('expired');
                 } else {
-                    progressText.textContent = 'Срок истек';
+                    countdownElement.textContent = 'Срок истек';
+                    progressText.textContent = 'Прогресс: 100%';
                     tracker.classList.add('expired');
                     if (repeat !== 'none') {
                         resetRepeatedTracker(id, repeat);
@@ -614,6 +613,7 @@
                 progressBar.style.display = 'none';
                 progressFull.style.display = 'none';
                 progressText.textContent = '';
+                countdownElement.textContent = '';
                 tracker.classList.remove('expired');
             }
             filterTrackers(currentFilter);
@@ -749,13 +749,13 @@
 
         function applyFontSize() {
             document.body.style.fontSize = `${fontSize}px`;
-            const inputs = document.querySelectorAll('input, select, textarea, button, label, .text-display, .description-display, .start-date-compact');
+            const inputs = document.querySelectorAll('input, select, textarea, button, label, .text-display, .description-display, .start-date');
             inputs.forEach(element => {
                 element.style.fontSize = `${fontSize}px`;
             });
-            const compactDates = document.querySelectorAll('.start-date-compact');
-            compactDates.forEach(element => {
-                element.style.fontSize = `${Math.max(12, fontSize - 4)}px`;
+            const countdowns = document.querySelectorAll('.countdown');
+            countdowns.forEach(element => {
+                element.style.fontSize = `${Math.max(12, fontSize - 2)}px`;
             });
         }
 
