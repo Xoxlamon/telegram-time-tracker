@@ -154,10 +154,9 @@
             white-space: pre-wrap;
             margin: 8px 0;
         }
-        .start-date {
-            font-size: 14px;
+        .start-date-compact {
+            font-size: 12px;
             color: var(--tg-theme-hint-color, #888);
-            margin-bottom: 10px;
         }
         .filter-buttons {
             margin-bottom: 10px;
@@ -287,13 +286,12 @@
                 <div class="category-indicator ${category === 'Рабочие' ? 'work' : category === 'Личные' ? 'personal' : ''}">
                     ${category === 'Рабочие' ? 'Рабочие' : category === 'Личные' ? 'Личные' : ''}
                 </div>
-                <div class="start-date" id="start-date-display-${trackerCount}">${startDate ? new Date(startDate).toLocaleDateString('ru-RU') : 'Нет даты начала'}</div>
                 <div class="summary">
                     <p id="time-${trackerCount}"></p>
                     <div class="progress-bar" id="bar-${trackerCount}" style="display:none;">
                         <div class="progress" id="progress-${trackerCount}"></div>
                     </div>
-                    <span class="start-date-compact" id="start-date-compact-${trackerCount}">${startDate ? new Date(startDate).toLocaleDateString('ru-RU') : 'Нет'}</span>
+                    <span class="start-date-compact" id="start-date-compact-${trackerCount}">${startDate ? new Date(startDate).toLocaleDateString('ru-RU') : 'Нет даты начала'}</span>
                 </div>
                 <div class="details">
                     <div class="input-group">
@@ -361,11 +359,9 @@
 
         function updateStartDateDisplay(id) {
             const startDate = document.getElementById(`start-${id}`).value;
-            const display = document.getElementById(`start-date-display-${id}`);
             const compact = document.getElementById(`start-date-compact-${id}`);
             const dateStr = startDate ? new Date(startDate).toLocaleDateString('ru-RU') : 'Нет даты начала';
-            display.textContent = dateStr;
-            compact.textContent = startDate ? new Date(startDate).toLocaleDateString('ru-RU') : 'Нет';
+            compact.textContent = dateStr;
         }
 
         function updateCategoryIndicator(id) {
@@ -753,7 +749,7 @@
 
         function applyFontSize() {
             document.body.style.fontSize = `${fontSize}px`;
-            const inputs = document.querySelectorAll('input, select, textarea, button, label, .text-display, .description-display, .start-date');
+            const inputs = document.querySelectorAll('input, select, textarea, button, label, .text-display, .description-display, .start-date-compact');
             inputs.forEach(element => {
                 element.style.fontSize = `${fontSize}px`;
             });
