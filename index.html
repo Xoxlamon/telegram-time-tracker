@@ -2,2278 +2,2010 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, minimum-scale=0.5, user-scalable=yes">
-    <title>⏱️ Счетчик времени</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4CAF50">
-    <style>
-        /* ===== CSS VARIABLES & THEME ===== */
-        :root {
-            --tg-bg-primary: var(--tg-theme-bg-color, #ffffff);
-            --tg-bg-secondary: var(--tg-theme-secondary-bg-color, #f5f7fa);
-            --tg-bg-tertiary: var(--tg-theme-hint-color, #e8e8e8);
-            --tg-text-primary: var(--tg-theme-text-color, #1a1a1a);
-            --tg-text-secondary: var(--tg-theme-hint-color, #666666);
-            --tg-text-inverse: #ffffff;
-            --tg-accent: var(--tg-theme-button-color, #4CAF50);
-            --tg-accent-hover: #45a049;
-            --tg-accent-light: rgba(76, 175, 80, 0.1);
-            --tg-danger: #f44336;
-            --tg-danger-light: rgba(244, 67, 54, 0.1);
-            --tg-warning: #ff9800;
-            --tg-warning-light: rgba(255, 152, 0, 0.1);
-            --tg-success: #4CAF50;
-            --tg-info: #2196F3;
-            --tg-info-light: rgba(33, 150, 243, 0.1);
-            --tg-border-radius: 16px;
-            --tg-border-radius-sm: 8px;
-            --tg-border-radius-lg: 24px;
-            --tg-shadow: 0 2px 12px rgba(0,0,0,0.06);
-            --tg-shadow-hover: 0 8px 24px rgba(0,0,0,0.12);
-            --tg-shadow-active: 0 4px 16px rgba(0,0,0,0.08);
-            --tg-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            --tg-font-base: 16px;
-            --tg-font-sm: 14px;
-            --tg-font-lg: 18px;
-            --tg-header-height: 60px;
-            --tg-category-work: #4CAF50;
-            --tg-category-personal: #2196F3;
-            --tg-category-other: #9E9E9E;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --tg-bg-primary: #1a1a1e;
-                --tg-bg-secondary: #25252b;
-                --tg-bg-tertiary: #33333d;
-                --tg-text-primary: #f0f0f0;
-                --tg-text-secondary: #a0a0a0;
-                --tg-shadow: 0 2px 12px rgba(0,0,0,0.3);
-                --tg-shadow-hover: 0 8px 24px rgba(0,0,0,0.4);
-            }
-        }
-
-        /* ===== BASE STYLES ===== */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            margin: 0;
-            padding: 16px;
-            padding-top: calc(var(--tg-header-height) + 16px);
-            background-color: var(--tg-bg-primary);
-            color: var(--tg-text-primary);
-            min-height: 100vh;
-            line-height: 1.5;
-            font-size: var(--tg-font-base);
-            transition: var(--tg-transition);
-        }
-
-        /* ===== HEADER & CONTROLS ===== */
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: var(--tg-header-height);
-            background: var(--tg-bg-primary);
-            border-bottom: 1px solid var(--tg-bg-tertiary);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 16px;
-            z-index: 100;
-            box-shadow: var(--tg-shadow);
-        }
-
-        .header h1 {
-            font-size: var(--tg-font-lg);
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .header-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: none;
-            background: var(--tg-bg-secondary);
-            color: var(--tg-text-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: var(--tg-transition);
-            font-size: 16px;
-        }
-
-        .header-btn:hover {
-            background: var(--tg-accent);
-            color: var(--tg-text-inverse);
-            transform: scale(1.05);
-        }
-
-        .header-btn.danger:hover {
-            background: var(--tg-danger);
-        }
-
-        /* ===== CONTAINER ===== */
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        /* ===== QUICK ADD ===== */
-        .quick-add {
-            background: var(--tg-bg-secondary);
-            border-radius: var(--tg-border-radius);
-            padding: 12px;
-            margin-bottom: 16px;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            box-shadow: var(--tg-shadow);
-        }
-
-        .quick-add input {
-            flex: 1;
-            padding: 10px 14px;
-            border: 1px solid var(--tg-bg-tertiary);
-            border-radius: var(--tg-border-radius-sm);
-            background: var(--tg-bg-primary);
-            color: var(--tg-text-primary);
-            font-size: var(--tg-font-base);
-            transition: var(--tg-transition);
-        }
-
-        .quick-add input:focus {
-            outline: none;
-            border-color: var(--tg-accent);
-            box-shadow: 0 0 0 3px var(--tg-accent-light);
-        }
-
-        .quick-add select {
-            padding: 10px;
-            border: 1px solid var(--tg-bg-tertiary);
-            border-radius: var(--tg-border-radius-sm);
-            background: var(--tg-bg-primary);
-            color: var(--tg-text-primary);
-            cursor: pointer;
-        }
-
-        .quick-add button {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            border: none;
-            background: var(--tg-accent);
-            color: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            transition: var(--tg-transition);
-            flex-shrink: 0;
-        }
-
-        .quick-add button:hover {
-            background: var(--tg-accent-hover);
-            transform: scale(1.05);
-        }
-
-        /* ===== FILTER CHIPS ===== */
-        .filter-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 16px;
-            padding: 4px;
-        }
-
-        .chip {
-            padding: 8px 16px;
-            border-radius: 20px;
-            background: var(--tg-bg-secondary);
-            color: var(--tg-text-primary);
-            font-size: var(--tg-font-sm);
-            font-weight: 500;
-            cursor: pointer;
-            transition: var(--tg-transition);
-            border: 2px solid transparent;
-            user-select: none;
-        }
-
-        .chip:hover {
-            background: var(--tg-bg-tertiary);
-        }
-
-        .chip.active {
-            background: var(--tg-accent);
-            color: white;
-            border-color: var(--tg-accent-hover);
-        }
-
-        .chip[data-filter="work"].active { background: var(--tg-category-work); }
-        .chip[data-filter="personal"].active { background: var(--tg-category-personal); }
-        .chip[data-filter="expired"].active { background: var(--tg-danger); }
-
-        /* ===== SEARCH ===== */
-        .search-box {
-            position: relative;
-            margin-bottom: 16px;
-        }
-
-        .search-box input {
-            width: 100%;
-            padding: 12px 16px 12px 40px;
-            border: 1px solid var(--tg-bg-tertiary);
-            border-radius: var(--tg-border-radius);
-            background: var(--tg-bg-secondary);
-            color: var(--tg-text-primary);
-            font-size: var(--tg-font-base);
-            transition: var(--tg-transition);
-        }
-
-        .search-box input:focus {
-            outline: none;
-            border-color: var(--tg-accent);
-            box-shadow: 0 0 0 3px var(--tg-accent-light);
-        }
-
-        .search-box i {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--tg-text-secondary);
-        }
-
-        /* ===== TRACKER CARD ===== */
-        .trackers-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .tracker {
-            background: var(--tg-bg-primary);
-            border: 1px solid var(--tg-bg-tertiary);
-            border-radius: var(--tg-border-radius);
-            padding: 16px;
-            box-shadow: var(--tg-shadow);
-            transition: var(--tg-transition);
-            position: relative;
-            cursor: grab;
-        }
-
-        .tracker:active { cursor: grabbing; }
-        .tracker:hover {
-            box-shadow: var(--tg-shadow-hover);
-            transform: translateY(-2px);
-            border-color: var(--tg-accent);
-        }
-
-        .tracker.expired {
-            background: linear-gradient(135deg, var(--tg-bg-primary), var(--tg-danger-light));
-            border-color: var(--tg-danger);
-        }
-
-        .tracker.dragging {
-            opacity: 0.8;
-            box-shadow: var(--tg-shadow-hover);
-            transform: scale(1.02);
-            z-index: 10;
-        }
-
-        /* Category indicator */
-        .category-bar {
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            border-radius: var(--tg-border-radius) 0 0 var(--tg-border-radius);
-        }
-        .category-bar.work { background: var(--tg-category-work); }
-        .category-bar.personal { background: var(--tg-category-personal); }
-        .category-bar.other { background: var(--tg-category-other); }
-
-        /* Tracker header */
-        .tracker-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 12px;
-            padding-left: 8px;
-            margin-bottom: 12px;
-        }
-
-        .tracker-title {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .tracker-title h3 {
-            font-size: var(--tg-font-base);
-            font-weight: 600;
-            margin-bottom: 4px;
-            word-break: break-word;
-        }
-
-        .tracker-meta {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: var(--tg-font-sm);
-            color: var(--tg-text-secondary);
-        }
-
-        .tracker-meta i { font-size: 12px; }
-
-        /* Actions */
-        .tracker-actions {
-            display: flex;
-            gap: 4px;
-            flex-shrink: 0;
-        }
-
-        .action-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: none;
-            background: var(--tg-bg-secondary);
-            color: var(--tg-text-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: var(--tg-transition);
-            font-size: 14px;
-        }
-
-        .action-btn:hover {
-            background: var(--tg-accent);
-            color: white;
-            transform: scale(1.1);
-        }
-
-        .action-btn.delete:hover {
-            background: var(--tg-danger);
-        }
-
-        .action-btn.edit:hover {
-            background: var(--tg-info);
-        }
-
-        /* Summary section */
-        .tracker-summary {
-            padding-left: 8px;
-            margin-bottom: 12px;
-        }
-
-        .time-display {
-            font-size: var(--tg-font-lg);
-            font-weight: 600;
-            margin-bottom: 8px;
-            word-break: break-word;
-        }
-
-        .countdown {
-            font-size: var(--tg-font-sm);
-            color: var(--tg-text-secondary);
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .countdown.urgent {
-            color: var(--tg-warning);
-            font-weight: 500;
-        }
-
-        .countdown.expired {
-            color: var(--tg-danger);
-            font-weight: 600;
-        }
-
-        /* Progress bar */
-        .progress-wrapper {
-            margin: 8px 0;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: var(--tg-bg-tertiary);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .progress {
-            height: 100%;
-            border-radius: 3px;
-            background: var(--tg-accent);
-            transition: width 0.3s ease, background-color 0.3s ease;
-        }
-
-        .progress.near-complete {
-            background: var(--tg-warning);
-            animation: pulse 2s infinite;
-        }
-
-        .progress.complete {
-            background: var(--tg-danger);
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        .progress-text {
-            font-size: var(--tg-font-sm);
-            color: var(--tg-text-secondary);
-            text-align: right;
-            margin-top: 4px;
-        }
-
-        /* Details section */
-        .tracker-details {
-            padding-left: 8px;
-            border-top: 1px dashed var(--tg-bg-tertiary);
-            padding-top: 12px;
-            margin-top: 8px;
-        }
-
-        .tracker-details.collapsed {
-            display: none;
-        }
-
-        .detail-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
-
-        .detail-row label {
-            font-size: var(--tg-font-sm);
-            color: var(--tg-text-secondary);
-            min-width: 100px;
-            font-weight: 500;
-        }
-
-        .detail-row input,
-        .detail-row select,
-        .detail-row textarea {
-            flex: 1;
-            min-width: 150px;
-            padding: 8px 12px;
-            border: 1px solid var(--tg-bg-tertiary);
-            border-radius: var(--tg-border-radius-sm);
-            background: var(--tg-bg-secondary);
-            color: var(--tg-text-primary);
-            font-size: var(--tg-font-sm);
-            transition: var(--tg-transition);
-        }
-
-        .detail-row input:focus,
-        .detail-row select:focus,
-        .detail-row textarea:focus {
-            outline: none;
-            border-color: var(--tg-accent);
-            box-shadow: 0 0 0 3px var(--tg-accent-light);
-        }
-
-        .detail-row textarea {
-            min-height: 60px;
-            resize: vertical;
-            width: 100%;
-        }
-
-        .detail-display {
-            flex: 1;
-            min-width: 150px;
-            padding: 8px 12px;
-            background: var(--tg-bg-secondary);
-            border-radius: var(--tg-border-radius-sm);
-            font-size: var(--tg-font-sm);
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        .edit-buttons {
-            display: flex;
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: var(--tg-border-radius-sm);
-            background: var(--tg-accent);
-            color: white;
-            font-size: var(--tg-font-sm);
-            font-weight: 500;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: var(--tg-transition);
-        }
-
-        .btn:hover {
-            background: var(--tg-accent-hover);
-            transform: translateY(-1px);
-        }
-
-        .btn.secondary {
-            background: var(--tg-bg-tertiary);
-            color: var(--tg-text-primary);
-        }
-
-        .btn.secondary:hover {
-            background: var(--tg-text-secondary);
-            color: white;
-        }
-
-        .btn.danger {
-            background: var(--tg-danger);
-        }
-
-        .btn.danger:hover {
-            background: #d32f2f;
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn i { font-size: 12px; }
-
-        /* Voice input button */
-        .voice-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: 2px solid var(--tg-bg-tertiary);
-            background: var(--tg-bg-primary);
-            color: var(--tg-text-secondary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: var(--tg-transition);
-            flex-shrink: 0;
-        }
-
-        .voice-btn:hover,
-        .voice-btn.active {
-            border-color: var(--tg-accent);
-            color: var(--tg-accent);
-            background: var(--tg-accent-light);
-        }
-
-        .voice-btn.recording {
-            border-color: var(--tg-danger);
-            color: var(--tg-danger);
-            background: var(--tg-danger-light);
-            animation: pulse 1s infinite;
-        }
-
-        /* ===== MODALS ===== */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            animation: fadeIn 0.2s ease;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .modal-content {
-            background: var(--tg-bg-primary);
-            border-radius: var(--tg-border-radius-lg);
-            padding: 24px;
-            max-width: 500px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: var(--tg-shadow-hover);
-            animation: slideUp 0.3s ease;
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--tg-bg-tertiary);
-        }
-
-        .modal-header h3 {
-            font-size: var(--tg-font-lg);
-            font-weight: 600;
-        }
-
-        .modal-close {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: none;
-            background: var(--tg-bg-secondary);
-            color: var(--tg-text-primary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: var(--tg-transition);
-        }
-
-        .modal-close:hover {
-            background: var(--tg-danger);
-            color: white;
-        }
-
-        .modal-body {
-            margin-bottom: 20px;
-        }
-
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-            padding-top: 16px;
-            border-top: 1px solid var(--tg-bg-tertiary);
-        }
-
-        /* Stats chart */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: var(--tg-bg-secondary);
-            border-radius: var(--tg-border-radius);
-            padding: 16px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--tg-accent);
-            margin: 4px 0;
-        }
-
-        .stat-label {
-            font-size: var(--tg-font-sm);
-            color: var(--tg-text-secondary);
-        }
-
-        .chart-container {
-            height: 200px;
-            margin: 20px 0;
-        }
-
-        /* Settings panel */
-        .settings-grid {
-            display: grid;
-            gap: 16px;
-        }
-
-        .setting-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: var(--tg-bg-secondary);
-            border-radius: var(--tg-border-radius-sm);
-        }
-
-        .setting-item label {
-            font-weight: 500;
-        }
-
-        .setting-item select,
-        .setting-item input[type="range"] {
-            width: auto;
-            min-width: 120px;
-        }
-
-        .font-preview {
-            text-align: center;
-            padding: 12px;
-            background: var(--tg-bg-secondary);
-            border-radius: var(--tg-border-radius-sm);
-            margin-top: 8px;
-        }
-
-        /* ===== NOTIFICATIONS ===== */
-        .notification {
-            position: fixed;
-            top: calc(var(--tg-header-height) + 16px);
-            left: 50%;
-            transform: translateX(-50%) translateY(-20px);
-            background: var(--tg-bg-primary);
-            color: var(--tg-text-primary);
-            padding: 12px 24px;
-            border-radius: var(--tg-border-radius);
-            box-shadow: var(--tg-shadow-hover);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            z-index: 2000;
-            opacity: 0;
-            transition: all 0.3s ease;
-            max-width: 90%;
-            text-align: center;
-        }
-
-        .notification.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-
-        .notification.success {
-            border-left: 4px solid var(--tg-success);
-        }
-
-        .notification.error {
-            border-left: 4px solid var(--tg-danger);
-        }
-
-        .notification.warning {
-            border-left: 4px solid var(--tg-warning);
-        }
-
-        .notification i {
-            font-size: 18px;
-        }
-
-        .notification.success i { color: var(--tg-success); }
-        .notification.error i { color: var(--tg-danger); }
-        .notification.warning i { color: var(--tg-warning); }
-
-        /* ===== EMPTY STATE ===== */
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--tg-text-secondary);
-        }
-
-        .empty-state i {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-
-        .empty-state p {
-            margin-bottom: 20px;
-            font-size: var(--tg-font-lg);
-        }
-
-        /* ===== RESPONSIVE ===== */
-        @media (max-width: 480px) {
-            body {
-                padding: 12px;
-                padding-top: calc(var(--tg-header-height) + 12px);
-            }
-
-            .header {
-                padding: 0 12px;
-                height: 56px;
-            }
-
-            .header h1 {
-                font-size: 16px;
-            }
-
-            .header-btn {
-                width: 36px;
-                height: 36px;
-                font-size: 14px;
-            }
-
-            .quick-add {
-                flex-wrap: wrap;
-            }
-
-            .quick-add input {
-                min-width: 100%;
-                order: 1;
-            }
-
-            .quick-add select {
-                order: 2;
-                flex: 1;
-            }
-
-            .quick-add button {
-                order: 3;
-            }
-
-            .filter-chips {
-                gap: 6px;
-            }
-
-            .chip {
-                padding: 6px 12px;
-                font-size: 13px;
-            }
-
-            .tracker-header {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .tracker-actions {
-                justify-content: flex-end;
-            }
-
-            .detail-row {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .detail-row label {
-                min-width: auto;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .modal-content {
-                padding: 20px 16px;
-                margin: 8px;
-            }
-        }
-
-        /* ===== ACCESSIBILITY ===== */
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-        }
-
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-
-        /* Focus indicators */
-        button:focus-visible,
-        input:focus-visible,
-        select:focus-visible,
-        textarea:focus-visible,
-        .chip:focus-visible {
-            outline: 2px solid var(--tg-accent);
-            outline-offset: 2px;
-        }
-
-        /* ===== UTILITIES ===== */
-        .hidden { display: none !important; }
-        .text-center { text-align: center; }
-        .mt-8 { margin-top: 8px; }
-        .mt-16 { margin-top: 16px; }
-        .mb-8 { margin-bottom: 8px; }
-        .mb-16 { margin-bottom: 16px; }
-        .flex { display: flex; }
-        .flex-col { flex-direction: column; }
-        .items-center { align-items: center; }
-        .justify-between { justify-content: space-between; }
-        .gap-8 { gap: 8px; }
-        .gap-12 { gap: 12px; }
-        .w-full { width: 100%; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, minimum-scale=0.5, user-scalable=yes">
+<title>⏱️ Счетчик времени</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4CAF50">
+<style>
+/* ===== CSS VARIABLES & THEME ===== */
+:root {
+--tg-bg-primary: var(--tg-theme-bg-color, #ffffff);
+--tg-bg-secondary: var(--tg-theme-secondary-bg-color, #f5f7fa);
+--tg-bg-tertiary: var(--tg-theme-hint-color, #e8e8e8);
+--tg-text-primary: var(--tg-theme-text-color, #1a1a1a);
+--tg-text-secondary: var(--tg-theme-hint-color, #666666);
+--tg-text-inverse: #ffffff;
+--tg-accent: var(--tg-theme-button-color, #4CAF50);
+--tg-accent-hover: #45a049;
+--tg-accent-light: rgba(76, 175, 80, 0.1);
+--tg-danger: #f44336;
+--tg-danger-light: rgba(244, 67, 54, 0.1);
+--tg-warning: #ff9800;
+--tg-warning-light: rgba(255, 152, 0, 0.1);
+--tg-success: #4CAF50;
+--tg-info: #2196F3;
+--tg-info-light: rgba(33, 150, 243, 0.1);
+--tg-border-radius: 16px;
+--tg-border-radius-sm: 8px;
+--tg-border-radius-lg: 24px;
+--tg-shadow: 0 2px 12px rgba(0,0,0,0.06);
+--tg-shadow-hover: 0 8px 24px rgba(0,0,0,0.12);
+--tg-shadow-active: 0 4px 16px rgba(0,0,0,0.08);
+--tg-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+--tg-font-base: 16px;
+--tg-font-sm: 14px;
+--tg-font-lg: 18px;
+--tg-header-height: 60px;
+--tg-category-work: #4CAF50;
+--tg-category-personal: #2196F3;
+--tg-category-other: #9E9E9E;
+}
+@media (prefers-color-scheme: dark) {
+:root {
+--tg-bg-primary: #1a1a1e;
+--tg-bg-secondary: #25252b;
+--tg-bg-tertiary: #33333d;
+--tg-text-primary: #f0f0f0;
+--tg-text-secondary: #a0a0a0;
+--tg-shadow: 0 2px 12px rgba(0,0,0,0.3);
+--tg-shadow-hover: 0 8px 24px rgba(0,0,0,0.4);
+}
+}
+/* ===== BASE STYLES ===== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+margin: 0;
+padding: 16px;
+padding-top: calc(var(--tg-header-height) + 16px);
+background-color: var(--tg-bg-primary);
+color: var(--tg-text-primary);
+min-height: 100vh;
+line-height: 1.5;
+font-size: var(--tg-font-base);
+transition: var(--tg-transition);
+}
+/* ===== HEADER & CONTROLS ===== */
+.header {
+position: fixed;
+top: 0;
+left: 0;
+right: 0;
+height: var(--tg-header-height);
+background: var(--tg-bg-primary);
+border-bottom: 1px solid var(--tg-bg-tertiary);
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 0 16px;
+z-index: 100;
+box-shadow: var(--tg-shadow);
+}
+.header h1 {
+font-size: var(--tg-font-lg);
+font-weight: 600;
+display: flex;
+align-items: center;
+gap: 8px;
+}
+.header-actions {
+display: flex;
+gap: 8px;
+}
+.header-btn {
+width: 40px;
+height: 40px;
+border-radius: 50%;
+border: none;
+background: var(--tg-bg-secondary);
+color: var(--tg-text-primary);
+display: flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+transition: var(--tg-transition);
+font-size: 16px;
+}
+.header-btn:hover {
+background: var(--tg-accent);
+color: var(--tg-text-inverse);
+transform: scale(1.05);
+}
+.header-btn.danger:hover {
+background: var(--tg-danger);
+}
+/* ===== CONTAINER ===== */
+.container {
+max-width: 800px;
+margin: 0 auto;
+width: 100%;
+}
+/* ===== QUICK ADD ===== */
+.quick-add {
+background: var(--tg-bg-secondary);
+border-radius: var(--tg-border-radius);
+padding: 12px;
+margin-bottom: 16px;
+display: flex;
+gap: 8px;
+align-items: center;
+box-shadow: var(--tg-shadow);
+}
+.quick-add input {
+flex: 1;
+padding: 10px 14px;
+border: 1px solid var(--tg-bg-tertiary);
+border-radius: var(--tg-border-radius-sm);
+background: var(--tg-bg-primary);
+color: var(--tg-text-primary);
+font-size: var(--tg-font-base);
+transition: var(--tg-transition);
+}
+.quick-add input:focus {
+outline: none;
+border-color: var(--tg-accent);
+box-shadow: 0 0 0 3px var(--tg-accent-light);
+}
+.quick-add select {
+padding: 10px;
+border: 1px solid var(--tg-bg-tertiary);
+border-radius: var(--tg-border-radius-sm);
+background: var(--tg-bg-primary);
+color: var(--tg-text-primary);
+cursor: pointer;
+}
+.quick-add button {
+width: 44px;
+height: 44px;
+border-radius: 50%;
+border: none;
+background: var(--tg-accent);
+color: white;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 18px;
+transition: var(--tg-transition);
+flex-shrink: 0;
+}
+.quick-add button:hover {
+background: var(--tg-accent-hover);
+transform: scale(1.05);
+}
+/* ===== FILTER CHIPS ===== */
+.filter-chips {
+display: flex;
+flex-wrap: wrap;
+gap: 8px;
+margin-bottom: 16px;
+padding: 4px;
+}
+.chip {
+padding: 8px 16px;
+border-radius: 20px;
+background: var(--tg-bg-secondary);
+color: var(--tg-text-primary);
+font-size: var(--tg-font-sm);
+font-weight: 500;
+cursor: pointer;
+transition: var(--tg-transition);
+border: 2px solid transparent;
+user-select: none;
+}
+.chip:hover {
+background: var(--tg-bg-tertiary);
+}
+.chip.active {
+background: var(--tg-accent);
+color: white;
+border-color: var(--tg-accent-hover);
+}
+.chip[data-filter="work"].active { background: var(--tg-category-work); }
+.chip[data-filter="personal"].active { background: var(--tg-category-personal); }
+.chip[data-filter="expired"].active { background: var(--tg-danger); }
+/* ===== SEARCH ===== */
+.search-box {
+position: relative;
+margin-bottom: 16px;
+}
+.search-box input {
+width: 100%;
+padding: 12px 16px 12px 40px;
+border: 1px solid var(--tg-bg-tertiary);
+border-radius: var(--tg-border-radius);
+background: var(--tg-bg-secondary);
+color: var(--tg-text-primary);
+font-size: var(--tg-font-base);
+transition: var(--tg-transition);
+}
+.search-box input:focus {
+outline: none;
+border-color: var(--tg-accent);
+box-shadow: 0 0 0 3px var(--tg-accent-light);
+}
+.search-box i {
+position: absolute;
+left: 14px;
+top: 50%;
+transform: translateY(-50%);
+color: var(--tg-text-secondary);
+}
+/* ===== TRACKER CARD ===== */
+.trackers-list {
+display: flex;
+flex-direction: column;
+gap: 12px;
+}
+.tracker {
+background: var(--tg-bg-primary);
+border: 1px solid var(--tg-bg-tertiary);
+border-radius: var(--tg-border-radius);
+padding: 16px;
+box-shadow: var(--tg-shadow);
+transition: var(--tg-transition);
+position: relative;
+cursor: grab;
+}
+.tracker:active { cursor: grabbing; }
+.tracker:hover {
+box-shadow: var(--tg-shadow-hover);
+transform: translateY(-2px);
+border-color: var(--tg-accent);
+}
+.tracker.expired {
+background: linear-gradient(135deg, var(--tg-bg-primary), var(--tg-danger-light));
+border-color: var(--tg-danger);
+}
+.tracker.dragging {
+opacity: 0.8;
+box-shadow: var(--tg-shadow-hover);
+transform: scale(1.02);
+z-index: 10;
+}
+/* Category indicator */
+.category-bar {
+position: absolute;
+left: 0;
+top: 0;
+bottom: 0;
+width: 4px;
+border-radius: var(--tg-border-radius) 0 0 var(--tg-border-radius);
+}
+.category-bar.work { background: var(--tg-category-work); }
+.category-bar.personal { background: var(--tg-category-personal); }
+.category-bar.other { background: var(--tg-category-other); }
+/* Tracker header */
+.tracker-header {
+display: flex;
+align-items: flex-start;
+justify-content: space-between;
+gap: 12px;
+padding-left: 8px;
+margin-bottom: 12px;
+}
+.tracker-title {
+flex: 1;
+min-width: 0;
+}
+.tracker-title h3 {
+font-size: var(--tg-font-base);
+font-weight: 600;
+margin-bottom: 4px;
+word-break: break-word;
+}
+.tracker-meta {
+display: flex;
+align-items: center;
+gap: 8px;
+font-size: var(--tg-font-sm);
+color: var(--tg-text-secondary);
+}
+.tracker-meta i { font-size: 12px; }
+/* Actions */
+.tracker-actions {
+display: flex;
+gap: 4px;
+flex-shrink: 0;
+}
+.action-btn {
+width: 32px;
+height: 32px;
+border-radius: 50%;
+border: none;
+background: var(--tg-bg-secondary);
+color: var(--tg-text-primary);
+display: flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+transition: var(--tg-transition);
+font-size: 14px;
+}
+.action-btn:hover {
+background: var(--tg-accent);
+color: white;
+transform: scale(1.1);
+}
+.action-btn.delete:hover {
+background: var(--tg-danger);
+}
+.action-btn.edit:hover {
+background: var(--tg-info);
+}
+/* Summary section */
+.tracker-summary {
+padding-left: 8px;
+margin-bottom: 12px;
+}
+.time-display {
+font-size: var(--tg-font-lg);
+font-weight: 600;
+margin-bottom: 8px;
+word-break: break-word;
+}
+.countdown {
+font-size: var(--tg-font-sm);
+color: var(--tg-text-secondary);
+margin-bottom: 8px;
+display: flex;
+align-items: center;
+gap: 4px;
+}
+.countdown.urgent {
+color: var(--tg-warning);
+font-weight: 500;
+}
+.countdown.expired {
+color: var(--tg-danger);
+font-weight: 600;
+}
+/* Progress bar */
+.progress-wrapper {
+margin: 8px 0;
+}
+.progress-bar {
+width: 100%;
+height: 6px;
+background: var(--tg-bg-tertiary);
+border-radius: 3px;
+overflow: hidden;
+}
+.progress {
+height: 100%;
+border-radius: 3px;
+background: var(--tg-accent);
+transition: width 0.3s ease, background-color 0.3s ease;
+}
+.progress.near-complete {
+background: var(--tg-warning);
+animation: pulse 2s infinite;
+}
+.progress.complete {
+background: var(--tg-danger);
+}
+@keyframes pulse {
+0%, 100% { opacity: 1; }
+50% { opacity: 0.7; }
+}
+.progress-text {
+font-size: var(--tg-font-sm);
+color: var(--tg-text-secondary);
+text-align: right;
+margin-top: 4px;
+}
+/* Details section */
+.tracker-details {
+padding-left: 8px;
+border-top: 1px dashed var(--tg-bg-tertiary);
+padding-top: 12px;
+margin-top: 8px;
+}
+.tracker-details.collapsed {
+display: none;
+}
+.detail-row {
+display: flex;
+align-items: center;
+gap: 12px;
+margin-bottom: 12px;
+flex-wrap: wrap;
+}
+.detail-row label {
+font-size: var(--tg-font-sm);
+color: var(--tg-text-secondary);
+min-width: 100px;
+font-weight: 500;
+}
+.detail-row input,
+.detail-row select,
+.detail-row textarea {
+flex: 1;
+min-width: 150px;
+padding: 8px 12px;
+border: 1px solid var(--tg-bg-tertiary);
+border-radius: var(--tg-border-radius-sm);
+background: var(--tg-bg-secondary);
+color: var(--tg-text-primary);
+font-size: var(--tg-font-sm);
+transition: var(--tg-transition);
+}
+.detail-row input:focus,
+.detail-row select:focus,
+.detail-row textarea:focus {
+outline: none;
+border-color: var(--tg-accent);
+box-shadow: 0 0 0 3px var(--tg-accent-light);
+}
+.detail-row textarea {
+min-height: 60px;
+resize: vertical;
+width: 100%;
+}
+.detail-display {
+flex: 1;
+min-width: 150px;
+padding: 8px 12px;
+background: var(--tg-bg-secondary);
+border-radius: var(--tg-border-radius-sm);
+font-size: var(--tg-font-sm);
+white-space: pre-wrap;
+word-break: break-word;
+}
+.edit-buttons {
+display: flex;
+gap: 8px;
+margin-top: 8px;
+}
+.btn {
+padding: 8px 16px;
+border: none;
+border-radius: var(--tg-border-radius-sm);
+background: var(--tg-accent);
+color: white;
+font-size: var(--tg-font-sm);
+font-weight: 500;
+cursor: pointer;
+display: flex;
+align-items: center;
+gap: 6px;
+transition: var(--tg-transition);
+}
+.btn:hover {
+background: var(--tg-accent-hover);
+transform: translateY(-1px);
+}
+.btn.secondary {
+background: var(--tg-bg-tertiary);
+color: var(--tg-text-primary);
+}
+.btn.secondary:hover {
+background: var(--tg-text-secondary);
+color: white;
+}
+.btn.danger {
+background: var(--tg-danger);
+}
+.btn.danger:hover {
+background: #d32f2f;
+}
+.btn:disabled {
+opacity: 0.6;
+cursor: not-allowed;
+transform: none;
+}
+.btn i { font-size: 12px; }
+/* Voice input button */
+.voice-btn {
+width: 32px;
+height: 32px;
+border-radius: 50%;
+border: 2px solid var(--tg-bg-tertiary);
+background: var(--tg-bg-primary);
+color: var(--tg-text-secondary);
+display: flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+transition: var(--tg-transition);
+flex-shrink: 0;
+}
+.voice-btn:hover,
+.voice-btn.active {
+border-color: var(--tg-accent);
+color: var(--tg-accent);
+background: var(--tg-accent-light);
+}
+.voice-btn.recording {
+border-color: var(--tg-danger);
+color: var(--tg-danger);
+background: var(--tg-danger-light);
+animation: pulse 1s infinite;
+}
+/* ===== MODALS ===== */
+.modal {
+display: none;
+position: fixed;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: rgba(0,0,0,0.5);
+z-index: 1000;
+align-items: center;
+justify-content: center;
+padding: 16px;
+animation: fadeIn 0.2s ease;
+}
+.modal.active {
+display: flex;
+}
+@keyframes fadeIn {
+from { opacity: 0; }
+to { opacity: 1; }
+}
+.modal-content {
+background: var(--tg-bg-primary);
+border-radius: var(--tg-border-radius-lg);
+padding: 24px;
+max-width: 500px;
+width: 100%;
+max-height: 90vh;
+overflow-y: auto;
+box-shadow: var(--tg-shadow-hover);
+animation: slideUp 0.3s ease;
+}
+@keyframes slideUp {
+from {
+opacity: 0;
+transform: translateY(20px);
+}
+to {
+opacity: 1;
+transform: translateY(0);
+}
+}
+.modal-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 20px;
+padding-bottom: 16px;
+border-bottom: 1px solid var(--tg-bg-tertiary);
+}
+.modal-header h3 {
+font-size: var(--tg-font-lg);
+font-weight: 600;
+}
+.modal-close {
+width: 32px;
+height: 32px;
+border-radius: 50%;
+border: none;
+background: var(--tg-bg-secondary);
+color: var(--tg-text-primary);
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: var(--tg-transition);
+}
+.modal-close:hover {
+background: var(--tg-danger);
+color: white;
+}
+.modal-body {
+margin-bottom: 20px;
+}
+.modal-footer {
+display: flex;
+justify-content: flex-end;
+gap: 12px;
+padding-top: 16px;
+border-top: 1px solid var(--tg-bg-tertiary);
+}
+/* Stats chart */
+.stats-grid {
+display: grid;
+grid-template-columns: repeat(2, 1fr);
+gap: 16px;
+margin-bottom: 20px;
+}
+.stat-card {
+background: var(--tg-bg-secondary);
+border-radius: var(--tg-border-radius);
+padding: 16px;
+text-align: center;
+}
+.stat-value {
+font-size: 24px;
+font-weight: 700;
+color: var(--tg-accent);
+margin: 4px 0;
+}
+.stat-label {
+font-size: var(--tg-font-sm);
+color: var(--tg-text-secondary);
+}
+.chart-container {
+height: 200px;
+margin: 20px 0;
+}
+/* Settings panel */
+.settings-grid {
+display: grid;
+gap: 16px;
+}
+.setting-item {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 12px;
+background: var(--tg-bg-secondary);
+border-radius: var(--tg-border-radius-sm);
+}
+.setting-item label {
+font-weight: 500;
+}
+.setting-item select,
+.setting-item input[type="range"] {
+width: auto;
+min-width: 120px;
+}
+.font-preview {
+text-align: center;
+padding: 12px;
+background: var(--tg-bg-secondary);
+border-radius: var(--tg-border-radius-sm);
+margin-top: 8px;
+}
+/* ===== NOTIFICATIONS ===== */
+.notification {
+position: fixed;
+top: calc(var(--tg-header-height) + 16px);
+left: 50%;
+transform: translateX(-50%) translateY(-20px);
+background: var(--tg-bg-primary);
+color: var(--tg-text-primary);
+padding: 12px 24px;
+border-radius: var(--tg-border-radius);
+box-shadow: var(--tg-shadow-hover);
+display: flex;
+align-items: center;
+gap: 10px;
+z-index: 2000;
+opacity: 0;
+transition: all 0.3s ease;
+max-width: 90%;
+text-align: center;
+}
+.notification.show {
+opacity: 1;
+transform: translateX(-50%) translateY(0);
+}
+.notification.success {
+border-left: 4px solid var(--tg-success);
+}
+.notification.error {
+border-left: 4px solid var(--tg-danger);
+}
+.notification.warning {
+border-left: 4px solid var(--tg-warning);
+}
+.notification i {
+font-size: 18px;
+}
+.notification.success i { color: var(--tg-success); }
+.notification.error i { color: var(--tg-danger); }
+.notification.warning i { color: var(--tg-warning); }
+/* ===== EMPTY STATE ===== */
+.empty-state {
+text-align: center;
+padding: 40px 20px;
+color: var(--tg-text-secondary);
+}
+.empty-state i {
+font-size: 48px;
+margin-bottom: 16px;
+opacity: 0.5;
+}
+.empty-state p {
+margin-bottom: 20px;
+font-size: var(--tg-font-lg);
+}
+/* ===== RESPONSIVE ===== */
+@media (max-width: 480px) {
+body {
+padding: 12px;
+padding-top: calc(var(--tg-header-height) + 12px);
+}
+.header {
+padding: 0 12px;
+height: 56px;
+}
+.header h1 {
+font-size: 16px;
+}
+.header-btn {
+width: 36px;
+height: 36px;
+font-size: 14px;
+}
+.quick-add {
+flex-wrap: wrap;
+}
+.quick-add input {
+min-width: 100%;
+order: 1;
+}
+.quick-add select {
+order: 2;
+flex: 1;
+}
+.quick-add button {
+order: 3;
+}
+.filter-chips {
+gap: 6px;
+}
+.chip {
+padding: 6px 12px;
+font-size: 13px;
+}
+.tracker-header {
+flex-direction: column;
+align-items: stretch;
+}
+.tracker-actions {
+justify-content: flex-end;
+}
+.detail-row {
+flex-direction: column;
+align-items: stretch;
+}
+.detail-row label {
+min-width: auto;
+}
+.stats-grid {
+grid-template-columns: 1fr;
+}
+.modal-content {
+padding: 20px 16px;
+margin: 8px;
+}
+}
+/* ===== ACCESSIBILITY ===== */
+@media (prefers-reduced-motion: reduce) {
+*, *::before, *::after {
+animation-duration: 0.01ms !important;
+animation-iteration-count: 1 !important;
+transition-duration: 0.01ms !important;
+}
+}
+.sr-only {
+position: absolute;
+width: 1px;
+height: 1px;
+padding: 0;
+margin: -1px;
+overflow: hidden;
+clip: rect(0, 0, 0, 0);
+white-space: nowrap;
+border: 0;
+}
+/* Focus indicators */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.chip:focus-visible {
+outline: 2px solid var(--tg-accent);
+outline-offset: 2px;
+}
+/* ===== UTILITIES ===== */
+.hidden { display: none !important; }
+.text-center { text-align: center; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.w-full { width: 100%; }
+</style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <h1><i class="fas fa-stopwatch"></i> Счетчики</h1>
-        <div class="header-actions">
-            <button class="header-btn" id="statsBtn" title="Статистика" aria-label="Открыть статистику">
-                <i class="fas fa-chart-bar"></i>
-            </button>
-            <button class="header-btn" id="settingsBtn" title="Настройки" aria-label="Открыть настройки">
-                <i class="fas fa-cog"></i>
-            </button>
-            <button class="header-btn danger" id="exportBtn" title="Экспорт данных" aria-label="Экспортировать данные">
-                <i class="fas fa-download"></i>
-            </button>
-        </div>
-    </header>
-
-    <!-- Main Container -->
-    <main class="container">
-        <!-- Quick Add -->
-        <div class="quick-add">
-            <input type="text" id="quickText" placeholder="Новое событие..." aria-label="Название события">
-            <select id="quickCategory" aria-label="Категория">
-                <option value="Без категории">📁</option>
-                <option value="Рабочие">🏢 Рабочие</option>
-                <option value="Личные">👤 Личные</option>
-            </select>
-            <button id="quickAddBtn" title="Добавить" aria-label="Добавить трекер">
-                <i class="fas fa-plus"></i>
-            </button>
-        </div>
-
-        <!-- Search -->
-        <div class="search-box">
-            <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Поиск по названию или описанию..." aria-label="Поиск">
-        </div>
-
-        <!-- Filter Chips -->
-        <div class="filter-chips" role="tablist" aria-label="Фильтры">
-            <span class="chip active" data-filter="all" role="tab" aria-selected="true" tabindex="0">Все</span>
-            <span class="chip" data-filter="active" role="tab" aria-selected="false" tabindex="0">Активные</span>
-            <span class="chip" data-filter="expired" role="tab" aria-selected="false" tabindex="0">Завершённые</span>
-            <span class="chip" data-filter="work" role="tab" aria-selected="false" tabindex="0">🏢 Рабочие</span>
-            <span class="chip" data-filter="personal" role="tab" aria-selected="false" tabindex="0">👤 Личные</span>
-        </div>
-
-        <!-- Trackers List -->
-        <div id="trackersList" class="trackers-list" role="list" aria-label="Список трекеров">
-            <!-- Trackers will be inserted here -->
-        </div>
-
-        <!-- Empty State -->
-        <div id="emptyState" class="empty-state hidden">
-            <i class="fas fa-clipboard-list"></i>
-            <p>Нет трекеров</p>
-            <button class="btn" onclick="quickAddTracker()">
-                <i class="fas fa-plus"></i> Создать первый
-            </button>
-        </div>
-
-        <!-- Add Button (fallback) -->
-        <div class="text-center mt-16">
-            <button class="btn secondary" onclick="addTracker()">
-                <i class="fas fa-plus"></i> Добавить трекер
-            </button>
-        </div>
-    </main>
-
-    <!-- Stats Modal -->
-    <div id="statsModal" class="modal" role="dialog" aria-labelledby="statsTitle" aria-modal="true">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="statsTitle"><i class="fas fa-chart-pie"></i> Статистика</h3>
-                <button class="modal-close" onclick="hideModal('statsModal')" aria-label="Закрыть">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-label">Активных</div>
-                        <div class="stat-value" id="statActive">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Завершённых</div>
-                        <div class="stat-value" id="statExpired">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Всего</div>
-                        <div class="stat-value" id="statTotal">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Средний срок</div>
-                        <div class="stat-value" id="statAvg">0 дн</div>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="statsChart"></canvas>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn secondary" onclick="hideModal('statsModal')">Закрыть</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="modal" role="dialog" aria-labelledby="settingsTitle" aria-modal="true">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="settingsTitle"><i class="fas fa-sliders-h"></i> Настройки</h3>
-                <button class="modal-close" onclick="hideModal('settingsModal')" aria-label="Закрыть">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="settings-grid">
-                    <div class="setting-item">
-                        <label for="sortSelect">Сортировка:</label>
-                        <select id="sortSelect">
-                            <option value="start">По дате начала</option>
-                            <option value="end">По дате окончания</option>
-                            <option value="personal">Личные primero</option>
-                            <option value="work">Рабочие primero</option>
-                            <option value="manual">Ручная (drag & drop)</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <label for="fontSizeSlider">Размер шрифта: <span id="fontSizeValue">16</span>px</label>
-                        <input type="range" id="fontSizeSlider" min="14" max="20" step="2" value="16">
-                    </div>
-                    <div class="setting-item">
-                        <label>Предпросмотр:</label>
-                    </div>
-                    <div class="font-preview" id="fontPreview">
-                        Пример текста для предпросмотра шрифта
-                    </div>
-                    <div class="setting-item">
-                        <label>Экспорт/Импорт:</label>
-                    </div>
-                    <div class="flex gap-8">
-                        <button class="btn secondary" id="importBtn">
-                            <i class="fas fa-upload"></i> Импорт
-                        </button>
-                        <button class="btn secondary" id="exportModalBtn">
-                            <i class="fas fa-download"></i> Экспорт
-                        </button>
-                        <input type="file" id="importFile" accept=".json" class="hidden">
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn secondary" onclick="hideModal('settingsModal')">Закрыть</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="modal" role="alertdialog" aria-labelledby="deleteTitle" aria-modal="true">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="deleteTitle"><i class="fas fa-trash-alt"></i> Удалить трекер?</h3>
-                <button class="modal-close" onclick="hideModal('deleteModal')" aria-label="Закрыть">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <p>Вы уверены, что хотите удалить этот трекер? Это действие нельзя отменить.</p>
-                <p id="deleteTrackerName" class="mt-8" style="font-weight: 500; color: var(--tg-text-primary);"></p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn secondary" onclick="hideModal('deleteModal')">Отмена</button>
-                <button class="btn danger" id="confirmDeleteBtn">
-                    <i class="fas fa-trash"></i> Удалить
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Notification -->
-    <div id="notification" class="notification" role="status" aria-live="polite">
-        <i class="fas fa-check-circle"></i>
-        <span id="notificationText">Сохранено</span>
-    </div>
-
-    <script>
-        // ===== APP STATE & CONFIG =====
-        const App = {
-            trackerCount: 0,
-            currentFilter: 'all',
-            currentSort: localStorage.getItem('sortPreference') || 'start',
-            fontSize: localStorage.getItem('fontSize') || '16',
-            collapsedState: JSON.parse(localStorage.getItem('collapsedState')) || {},
-            trackersOrder: JSON.parse(localStorage.getItem('trackersOrder')) || [],
-            notificationTimeout: null,
-            searchTimeout: null,
-            recognition: null,
-            statsChart: null,
-            selectors: {},
-            
-            // Cache DOM selectors
-            initSelectors() {
-                this.selectors = {
-                    trackersList: document.getElementById('trackersList'),
-                    emptyState: document.getElementById('emptyState'),
-                    searchInput: document.getElementById('searchInput'),
-                    sortSelect: document.getElementById('sortSelect'),
-                    fontSizeSlider: document.getElementById('fontSizeSlider'),
-                    fontSizeValue: document.getElementById('fontSizeValue'),
-                    fontPreview: document.getElementById('fontPreview'),
-                    notification: document.getElementById('notification'),
-                    notificationText: document.getElementById('notificationText'),
-                    quickText: document.getElementById('quickText'),
-                    quickCategory: document.getElementById('quickCategory'),
-                    quickAddBtn: document.getElementById('quickAddBtn'),
-                    statsBtn: document.getElementById('statsBtn'),
-                    settingsBtn: document.getElementById('settingsBtn'),
-                    exportBtn: document.getElementById('exportBtn'),
-                    exportModalBtn: document.getElementById('exportModalBtn'),
-                    importBtn: document.getElementById('importBtn'),
-                    importFile: document.getElementById('importFile'),
-                    statActive: document.getElementById('statActive'),
-                    statExpired: document.getElementById('statExpired'),
-                    statTotal: document.getElementById('statTotal'),
-                    statAvg: document.getElementById('statAvg'),
-                    statsChart: document.getElementById('statsChart'),
-                };
-            },
-
-            // Initialize app
-            init() {
-                this.initSelectors();
-                this.initTelegram();
-                this.initEventListeners();
-                this.initVoiceRecognition();
-                this.applyFontSize();
-                this.loadTrackers();
-                this.initSortable();
-                this.updateEmptyState();
-                
-                // Start timer updates
-                setInterval(() => this.updateAllTimers(), 1000);
-                
-                // Check deadlines every minute
-                setInterval(() => this.checkDeadlines(), 60000);
-            },
-
-            // Telegram WebApp setup
-            initTelegram() {
-                if (window.Telegram?.WebApp) {
-                    Telegram.WebApp.ready();
-                    Telegram.WebApp.expand();
-                    Telegram.WebApp.setHeaderColor(var(--tg-bg-primary));
-                    Telegram.WebApp.setBackgroundColor(var(--tg-bg-primary));
-                }
-            },
-
-            // Event listeners
-            initEventListeners() {
-                // Quick add
-                this.selectors.quickAddBtn.addEventListener('click', () => this.quickAddTracker());
-                this.selectors.quickText.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') this.quickAddTracker();
-                });
-
-                // Search with debounce
-                this.selectors.searchInput.addEventListener('input', (e) => {
-                    clearTimeout(this.searchTimeout);
-                    this.searchTimeout = setTimeout(() => {
-                        this.filterTrackers(this.currentFilter);
-                    }, 300);
-                });
-
-                // Filter chips
-                document.querySelectorAll('.chip').forEach(chip => {
-                    chip.addEventListener('click', () => {
-                        document.querySelectorAll('.chip').forEach(c => {
-                            c.classList.remove('active');
-                            c.setAttribute('aria-selected', 'false');
-                        });
-                        chip.classList.add('active');
-                        chip.setAttribute('aria-selected', 'true');
-                        this.currentFilter = chip.dataset.filter;
-                        this.filterTrackers(this.currentFilter);
-                    });
-                    
-                    // Keyboard support
-                    chip.addEventListener('keypress', (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            chip.click();
-                        }
-                    });
-                });
-
-                // Stats modal
-                this.selectors.statsBtn.addEventListener('click', () => this.showStats());
-                
-                // Settings modal
-                this.selectors.settingsBtn.addEventListener('click', () => {
-                    this.selectors.sortSelect.value = this.currentSort;
-                    this.selectors.fontSizeSlider.value = this.fontSize;
-                    this.selectors.fontSizeValue.textContent = this.fontSize;
-                    this.showModal('settingsModal');
-                });
-
-                // Sort change
-                this.selectors.sortSelect.addEventListener('change', (e) => {
-                    this.currentSort = e.target.value;
-                    localStorage.setItem('sortPreference', this.currentSort);
-                    if (this.currentSort === 'manual') {
-                        this.initSortable();
-                    } else {
-                        this.sortTrackers(this.currentSort);
-                    }
-                    this.showNotification('Сортировка обновлена', 'success');
-                });
-
-                // Font size
-                this.selectors.fontSizeSlider.addEventListener('input', (e) => {
-                    this.fontSize = e.target.value;
-                    this.selectors.fontSizeValue.textContent = this.fontSize;
-                    this.applyFontSize();
-                    localStorage.setItem('fontSize', this.fontSize);
-                });
-
-                // Export/Import
-                this.selectors.exportBtn.addEventListener('click', () => this.exportData());
-                this.selectors.exportModalBtn.addEventListener('click', () => this.exportData());
-                this.selectors.importBtn.addEventListener('click', () => this.selectors.importFile.click());
-                this.selectors.importFile.addEventListener('change', (e) => {
-                    if (e.target.files[0]) {
-                        this.importData(e.target.files[0]);
-                        e.target.value = '';
-                    }
-                });
-
-                // Close modals on backdrop click
-                document.querySelectorAll('.modal').forEach(modal => {
-                    modal.addEventListener('click', (e) => {
-                        if (e.target === modal) {
-                            modal.classList.remove('active');
-                        }
-                    });
-                });
-
-                // Keyboard: Escape to close modals
-                document.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape') {
-                        document.querySelectorAll('.modal.active').forEach(modal => {
-                            modal.classList.remove('active');
-                        });
-                    }
-                });
-            },
-
-            // Voice recognition setup
-            initVoiceRecognition() {
-                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                    this.recognition = new SpeechRecognition();
-                    this.recognition.lang = 'ru-RU';
-                    this.recognition.continuous = false;
-                    this.recognition.interimResults = false;
-
-                    this.recognition.onresult = (event) => {
-                        const transcript = event.results[0][0].transcript;
-                        if (this.currentVoiceInput) {
-                            this.currentVoiceInput.value = transcript;
-                            this.showNotification('Текст распознан', 'success');
-                        }
-                    };
-
-                    this.recognition.onerror = (event) => {
-                        console.error('Speech recognition error:', event.error);
-                        this.showNotification('Ошибка распознавания', 'error');
-                        if (this.currentVoiceBtn) {
-                            this.currentVoiceBtn.classList.remove('recording', 'active');
-                        }
-                    };
-
-                    this.recognition.onend = () => {
-                        if (this.currentVoiceBtn) {
-                            this.currentVoiceBtn.classList.remove('recording', 'active');
-                        }
-                    };
-                }
-            },
-
-            // Start voice input for a specific field
-            startVoiceInput(inputElement, btnElement) {
-                if (!this.recognition) {
-                    this.showNotification('Голосовой ввод не поддерживается', 'warning');
-                    return;
-                }
-                
-                this.currentVoiceInput = inputElement;
-                this.currentVoiceBtn = btnElement;
-                btnElement.classList.add('active', 'recording');
-                
-                try {
-                    this.recognition.start();
-                } catch (e) {
-                    console.error('Failed to start recognition:', e);
-                    btnElement.classList.remove('recording', 'active');
-                    this.showNotification('Не удалось начать запись', 'error');
-                }
-            },
-
-            // ===== TRACKER FUNCTIONS =====
-            
-            // Create tracker HTML
-            createTrackerHTML(id, data) {
-                const isCollapsed = this.collapsedState[id] || false;
-                const category = data.category || 'Без категории';
-                const categoryClass = category === 'Рабочие' ? 'work' : category === 'Личные' ? 'personal' : 'other';
-                const startDate = data.start ? new Date(data.start) : null;
-                const endDate = data.end ? new Date(data.end) : null;
-                const startStr = startDate ? startDate.toLocaleDateString('ru-RU') : 'Нет даты';
-                
-                return `
-                    <article class="tracker" id="tracker-${id}" role="listitem" data-category="${category}" aria-expanded="${!isCollapsed}">
-                        <div class="category-bar ${categoryClass}"></div>
-                        
-                        <div class="tracker-header">
-                            <div class="tracker-title">
-                                <h3 id="text-display-${id}">${this.escapeHtml(data.text || 'Новое событие')}</h3>
-                                <input type="text" id="text-${id}" class="hidden" value="${this.escapeHtml(data.text || '')}" 
-                                    placeholder="Название события" aria-label="Название">
-                                <div class="tracker-meta">
-                                    <span><i class="fas fa-calendar"></i> ${startStr}</span>
-                                    ${category !== 'Без категории' ? `<span>• ${category}</span>` : ''}
-                                </div>
-                            </div>
-                            
-                            <div class="tracker-actions">
-                                <button class="action-btn voice-btn" title="Голосовой ввод" aria-label="Голосовой ввод"
-                                    onclick="App.startVoiceInput(document.getElementById('text-${id}'), this)">
-                                    <i class="fas fa-microphone"></i>
-                                </button>
-                                <button class="action-btn edit" title="Редактировать" aria-label="Редактировать"
-                                    onclick="App.toggleEdit(${id})">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="action-btn" title="${isCollapsed ? 'Развернуть' : 'Свернуть'}" aria-label="${isCollapsed ? 'Развернуть' : 'Свернуть'}"
-                                    onclick="App.toggleTracker(${id})">
-                                    <i class="fas fa-chevron-${isCollapsed ? 'down' : 'up'}"></i>
-                                </button>
-                                <button class="action-btn delete" title="Удалить" aria-label="Удалить"
-                                    onclick="App.confirmDelete(${id})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="tracker-summary">
-                            <div class="time-display" id="time-${id}">Загрузка...</div>
-                            <div class="countdown" id="countdown-${id}"></div>
-                            
-                            <div class="progress-wrapper" id="progressWrapper-${id}" style="display:none;">
-                                <div class="progress-bar">
-                                    <div class="progress" id="progress-${id}"></div>
-                                </div>
-                                <div class="progress-text" id="progressText-${id}"></div>
-                            </div>
-                        </div>
-                        
-                        <div class="tracker-details ${isCollapsed ? 'collapsed' : ''}" id="details-${id}" role="region" 
-                            aria-labelledby="text-display-${id}">
-                            
-                            <div class="detail-row">
-                                <label for="description-${id}">Описание:</label>
-                                <div id="description-display-${id}" class="detail-display">${this.escapeHtml(data.description || '')}</div>
-                                <textarea id="description-${id}" class="hidden" placeholder="Дополнительная информация...">${this.escapeHtml(data.description || '')}</textarea>
-                            </div>
-                            
-                            <div class="detail-row">
-                                <label for="category-${id}">Категория:</label>
-                                <select id="category-${id}" onchange="App.updateCategory(${id}); App.saveTrackers()">
-                                    <option value="Без категории" ${category === 'Без категории' ? 'selected' : ''}>📁 Без категории</option>
-                                    <option value="Рабочие" ${category === 'Рабочие' ? 'selected' : ''}>🏢 Рабочие</option>
-                                    <option value="Личные" ${category === 'Личные' ? 'selected' : ''}>👤 Личные</option>
-                                </select>
-                            </div>
-                            
-                            <div class="detail-row">
-                                <label for="repeat-${id}">Повторение:</label>
-                                <select id="repeat-${id}" onchange="App.saveTrackers()">
-                                    <option value="none" ${data.repeat === 'none' ? 'selected' : ''}>Не повторять</option>
-                                    <option value="daily" ${data.repeat === 'daily' ? 'selected' : ''}>🔄 Ежедневно</option>
-                                    <option value="weekly" ${data.repeat === 'weekly' ? 'selected' : ''}>📅 Еженедельно</option>
-                                    <option value="monthly" ${data.repeat === 'monthly' ? 'selected' : ''}>🗓️ Ежемесячно</option>
-                                </select>
-                            </div>
-                            
-                            <div class="detail-row">
-                                <label for="start-${id}">Дата начала:</label>
-                                <input type="date" id="start-${id}" value="${data.start || ''}" 
-                                    onchange="App.updateTracker(${id}); App.saveTrackers()">
-                            </div>
-                            
-                            <div class="detail-row">
-                                <label>Дата окончания:</label>
-                                <div class="flex gap-8 w-full">
-                                    <select id="endOption-${id}" style="flex:1;" onchange="App.toggleEndDate(${id})">
-                                        <option value="none" ${!data.end ? 'selected' : ''}>Без даты</option>
-                                        <option value="custom" ${data.end ? 'selected' : ''}>Выбрать дату</option>
-                                    </select>
-                                    <input type="date" id="endDate-${id}" value="${data.end || ''}" 
-                                        style="flex:2; ${!data.end ? 'display:none;' : ''}"
-                                        onchange="App.updateTracker(${id}); App.saveTrackers()">
-                                </div>
-                            </div>
-                            
-                            <div class="edit-buttons" id="editButtons-${id}" style="display:none;">
-                                <button class="btn" onclick="App.saveTracker(${id})">
-                                    <i class="fas fa-save"></i> Сохранить
-                                </button>
-                                <button class="btn secondary" onclick="App.cancelEdit(${id})">
-                                    <i class="fas fa-times"></i> Отмена
-                                </button>
-                            </div>
-                        </div>
-                    </article>
-                `;
-            },
-
-            // Add new tracker
-            addTracker(data = {}) {
-                const id = ++this.trackerCount;
-                const trackerData = {
-                    id,
-                    text: data.text || 'Новое событие',
-                    description: data.description || '',
-                    start: data.start || '',
-                    end: data.end || '',
-                    category: data.category || 'Без категории',
-                    repeat: data.repeat || 'none',
-                    createdAt: new Date().toISOString()
-                };
-
-                const trackerEl = document.createElement('div');
-                trackerEl.innerHTML = this.createTrackerHTML(id, trackerData);
-                this.selectors.trackersList.appendChild(trackerEl.firstElementChild);
-
-                this.updateTracker(id);
-                this.saveTrackers();
-                this.sortTrackers(this.currentSort);
-                this.filterTrackers(this.currentFilter);
-                this.updateEmptyState();
-                
-                return id;
-            },
-
-            // Quick add from header
-            quickAddTracker() {
-                const text = this.selectors.quickText.value.trim();
-                const category = this.selectors.quickCategory.value;
-                
-                if (!text) {
-                    this.showNotification('Введите название события', 'warning');
-                    this.selectors.quickText.focus();
-                    return;
-                }
-
-                const id = this.addTracker({ text, category, start: new Date().toISOString().split('T')[0] });
-                
-                this.selectors.quickText.value = '';
-                this.showNotification('Трекер добавлен', 'success');
-                
-                // Auto-expand and focus edit
-                setTimeout(() => {
-                    this.toggleEdit(id);
-                    document.getElementById(`text-${id}`)?.focus();
-                }, 100);
-            },
-
-            // Toggle edit mode
-            toggleEdit(id) {
-                const display = document.getElementById(`text-display-${id}`);
-                const input = document.getElementById(`text-${id}`);
-                const descDisplay = document.getElementById(`description-display-${id}`);
-                const descInput = document.getElementById(`description-${id}`);
-                const editButtons = document.getElementById(`editButtons-${id}`);
-                
-                const isEditing = !input.classList.contains('hidden');
-                
-                if (isEditing) {
-                    // Cancel edit
-                    display.classList.remove('hidden');
-                    input.classList.add('hidden');
-                    descDisplay.classList.remove('hidden');
-                    descInput.classList.add('hidden');
-                    editButtons.style.display = 'none';
-                    input.value = display.textContent;
-                    descInput.value = descDisplay.textContent;
-                } else {
-                    // Start edit
-                    display.classList.add('hidden');
-                    input.classList.remove('hidden');
-                    descDisplay.classList.add('hidden');
-                    descInput.classList.remove('hidden');
-                    editButtons.style.display = 'flex';
-                    input.focus();
-                    input.select();
-                }
-            },
-
-            // Save tracker edits
-            saveTracker(id) {
-                const textInput = document.getElementById(`text-${id}`);
-                const text = textInput.value.trim();
-                
-                if (!text) {
-                    this.showNotification('Название не может быть пустым', 'error');
-                    textInput.focus();
-                    return;
-                }
-
-                const startDate = document.getElementById(`start-${id}`).value;
-                const endDate = document.getElementById(`endDate-${id}`).value;
-                
-                if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
-                    this.showNotification('Дата окончания не может быть раньше начала', 'error');
-                    return;
-                }
-
-                // Update display values
-                document.getElementById(`text-display-${id}`).textContent = text;
-                document.getElementById(`description-display-${id}`).textContent = 
-                    document.getElementById(`description-${id}`).value;
-                
-                // Toggle back to view mode
-                this.toggleEdit(id);
-                
-                this.updateTracker(id);
-                this.saveTrackers();
-                this.showNotification('Изменения сохранены', 'success');
-            },
-
-            // Cancel edit
-            cancelEdit(id) {
-                this.toggleEdit(id);
-            },
-
-            // Toggle tracker collapse
-            toggleTracker(id) {
-                const tracker = document.getElementById(`tracker-${id}`);
-                const details = document.getElementById(`details-${id}`);
-                const toggleBtn = tracker.querySelector('.tracker-actions .action-btn:not(.delete):not(.edit):not(.voice-btn)');
-                const icon = toggleBtn.querySelector('i');
-                
-                const isCollapsed = details.classList.contains('collapsed');
-                
-                if (isCollapsed) {
-                    details.classList.remove('collapsed');
-                    icon.className = 'fas fa-chevron-up';
-                    toggleBtn.setAttribute('aria-label', 'Свернуть');
-                    tracker.setAttribute('aria-expanded', 'true');
-                    this.collapsedState[id] = false;
-                } else {
-                    details.classList.add('collapsed');
-                    icon.className = 'fas fa-chevron-down';
-                    toggleBtn.setAttribute('aria-label', 'Развернуть');
-                    tracker.setAttribute('aria-expanded', 'false');
-                    this.collapsedState[id] = true;
-                }
-                
-                localStorage.setItem('collapsedState', JSON.stringify(this.collapsedState));
-            },
-
-            // Update category indicator
-            updateCategory(id) {
-                const category = document.getElementById(`category-${id}`).value;
-                const bar = document.querySelector(`#tracker-${id} .category-bar`);
-                bar.className = 'category-bar ' + (category === 'Рабочие' ? 'work' : category === 'Личные' ? 'personal' : 'other');
-                document.querySelector(`#tracker-${id}`).dataset.category = category;
-            },
-
-            // Toggle end date input
-            toggleEndDate(id) {
-                const option = document.getElementById(`endOption-${id}`).value;
-                const input = document.getElementById(`endDate-${id}`);
-                input.style.display = option === 'custom' ? 'block' : 'none';
-                if (option === 'none') input.value = '';
-                this.updateTracker(id);
-            },
-
-            // Update timer calculations
-            updateTracker(id) {
-                const tracker = document.getElementById(`tracker-${id}`);
-                if (!tracker) return;
-
-                const startDate = document.getElementById(`start-${id}`).value;
-                const endOption = document.getElementById(`endOption-${id}`).value;
-                const endDate = endOption === 'custom' ? document.getElementById(`endDate-${id}`).value : null;
-                const customText = document.getElementById(`text-${id}`).value || document.getElementById(`text-display-${id}`).textContent;
-                const repeat = document.getElementById(`repeat-${id}`).value;
-                const now = new Date();
-
-                // Update start date display
-                const startDisplay = tracker.querySelector('.tracker-meta span:first-child');
-                if (startDate) {
-                    startDisplay.innerHTML = `<i class="fas fa-calendar"></i> ${new Date(startDate).toLocaleDateString('ru-RU')}`;
-                }
-
-                if (!startDate || isNaN(new Date(startDate).getTime())) {
-                    document.getElementById(`time-${id}`).textContent = '📅 Выберите дату начала';
-                    document.getElementById(`countdown-${id}`).textContent = '';
-                    document.getElementById(`progressWrapper-${id}`).style.display = 'none';
-                    return;
-                }
-
-                const start = new Date(startDate);
-                const diffTime = Math.abs(now - start);
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                
-                // Format elapsed time
-                let timeString = `${customText} • `;
-                if (diffDays >= 365) {
-                    const years = Math.floor(diffDays / 365);
-                    timeString += `${years} г. ${Math.floor((diffDays % 365) / 30)} мес. назад`;
-                } else if (diffDays >= 30) {
-                    const months = Math.floor(diffDays / 30);
-                    timeString += `${months} мес. ${diffDays % 30} дн. назад`;
-                } else if (diffDays > 0) {
-                    timeString += `${diffDays} дн. назад`;
-                } else {
-                    const hours = Math.floor(diffTime / (1000 * 60 * 60));
-                    const mins = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
-                    timeString += hours > 0 ? `${hours} ч. ${mins} мин. назад` : `${mins} мин. назад`;
-                }
-                document.getElementById(`time-${id}`).textContent = timeString;
-
-                // Progress bar & countdown
-                const progressWrapper = document.getElementById(`progressWrapper-${id}`);
-                const progressEl = document.getElementById(`progress-${id}`);
-                const progressText = document.getElementById(`progressText-${id}`);
-                const countdownEl = document.getElementById(`countdown-${id}`);
-
-                if (endDate && new Date(endDate) > start) {
-                    const end = new Date(endDate);
-                    const totalTime = end - start;
-                    const passedTime = now - start;
-                    const progress = Math.min((passedTime / totalTime) * 100, 100);
-                    const remaining = end - now;
-
-                    progressWrapper.style.display = 'block';
-                    progressEl.style.width = `${progress}%`;
-                    progressText.textContent = `Прогресс: ${progress.toFixed(1)}%`;
-                    
-                    // Progress colors
-                    progressEl.className = 'progress';
-                    if (progress >= 100) {
-                        progressEl.classList.add('complete');
-                    } else if (progress >= 80) {
-                        progressEl.classList.add('near-complete');
-                    }
-
-                    // Countdown
-                    if (remaining > 0) {
-                        const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
-                        const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                        const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-                        
-                        let countdown = `⏱️ Осталось: `;
-                        if (days > 0) countdown += `${days}д `;
-                        if (hours > 0 || days > 0) countdown += `${hours}ч `;
-                        countdown += `${mins}мин`;
-                        
-                        countdownEl.textContent = countdown;
-                        countdownEl.className = 'countdown';
-                        if (remaining < 3 * 24 * 60 * 60 * 1000) {
-                            countdownEl.classList.add('urgent');
-                        }
-                        
-                        tracker.classList.remove('expired');
-                    } else {
-                        countdownEl.textContent = '✅ Срок истёк';
-                        countdownEl.className = 'countdown expired';
-                        tracker.classList.add('expired');
-                        
-                        // Auto-reset for repeating trackers
-                        if (repeat !== 'none') {
-                            this.resetRepeatedTracker(id, repeat);
-                        }
-                        
-                        // Celebrate completion
-                        if (!tracker.dataset.celebrated) {
-                            this.celebrateCompletion(id);
-                            tracker.dataset.celebrated = 'true';
-                        }
-                    }
-                } else {
-                    progressWrapper.style.display = 'none';
-                    countdownEl.textContent = '';
-                    tracker.classList.remove('expired');
-                }
-            },
-
-            // Update all visible trackers
-            updateAllTimers() {
-                document.querySelectorAll('.tracker:not(.hidden)').forEach(tracker => {
-                    const id = tracker.id.split('-')[1];
-                    this.updateTracker(id);
-                });
-            },
-
-            // Reset repeating tracker
-            resetRepeatedTracker(id, repeat) {
-                const startInput = document.getElementById(`start-${id}`);
-                const endInput = document.getElementById(`endDate-${id}`);
-                let newStart = new Date(startInput.value);
-                let newEnd = endInput.value ? new Date(endInput.value) : null;
-                
-                switch(repeat) {
-                    case 'daily':
-                        newStart.setDate(newStart.getDate() + 1);
-                        if (newEnd) newEnd.setDate(newEnd.getDate() + 1);
-                        break;
-                    case 'weekly':
-                        newStart.setDate(newStart.getDate() + 7);
-                        if (newEnd) newEnd.setDate(newEnd.getDate() + 7);
-                        break;
-                    case 'monthly':
-                        newStart.setMonth(newStart.getMonth() + 1);
-                        if (newEnd) newEnd.setMonth(newEnd.getMonth() + 1);
-                        break;
-                }
-                
-                startInput.value = newStart.toISOString().split('T')[0];
-                if (newEnd) {
-                    endInput.value = newEnd.toISOString().split('T')[0];
-                    document.getElementById(`endOption-${id}`).value = 'custom';
-                    endInput.style.display = 'block';
-                }
-                
-                // Reset celebration flag
-                const tracker = document.getElementById(`tracker-${id}`);
-                if (tracker) delete tracker.dataset.celebrated;
-                
-                this.updateTracker(id);
-                this.saveTrackers();
-            },
-
-            // Celebrate with confetti
-            celebrateCompletion(id) {
-                const tracker = document.getElementById(`tracker-${id}`);
-                if (!tracker) return;
-                
-                const rect = tracker.getBoundingClientRect();
-                const x = (rect.left + rect.width / 2) / window.innerWidth;
-                const y = (rect.top + rect.height / 2) / window.innerHeight;
-                
-                confetti({
-                    particleCount: 50,
-                    angle: 60,
-                    spread: 80,
-                    origin: { x, y },
-                    colors: ['#4CAF50', '#2196F3', '#FF9800']
-                });
-                
-                confetti({
-                    particleCount: 50,
-                    angle: 120,
-                    spread: 80,
-                    origin: { x, y },
-                    colors: ['#4CAF50', '#2196F3', '#FF9800']
-                });
-            },
-
-            // ===== FILTER & SORT =====
-            
-            filterTrackers(filter) {
-                const searchValue = this.selectors.searchInput.value.toLowerCase();
-                const trackers = document.querySelectorAll('.tracker');
-                
-                trackers.forEach(tracker => {
-                    const id = tracker.id.split('-')[1];
-                    const text = (document.getElementById(`text-${id}`)?.value || 
-                                document.getElementById(`text-display-${id}`)?.textContent || '').toLowerCase();
-                    const description = (document.getElementById(`description-${id}`)?.value || 
-                                       document.getElementById(`description-display-${id}`)?.textContent || '').toLowerCase();
-                    const category = tracker.dataset.category;
-                    
-                    const endDate = document.getElementById(`endDate-${id}`)?.value;
-                    const isExpired = endDate && new Date(endDate) < new Date();
-                    
-                    // Search match
-                    const matchesSearch = !searchValue || text.includes(searchValue) || description.includes(searchValue);
-                    
-                    // Filter match
-                    let matchesFilter = true;
-                    switch(filter) {
-                        case 'active':
-                            matchesFilter = !isExpired || !endDate;
-                            break;
-                        case 'expired':
-                            matchesFilter = isExpired;
-                            break;
-                        case 'work':
-                            matchesFilter = category === 'Рабочие';
-                            break;
-                        case 'personal':
-                            matchesFilter = category === 'Личные';
-                            break;
-                    }
-                    
-                    tracker.classList.toggle('hidden', !(matchesSearch && matchesFilter));
-                });
-                
-                this.updateEmptyState();
-            },
-
-            sortTrackers(criteria) {
-                if (criteria === 'manual') return; // Handled by SortableJS
-                
-                const trackers = Array.from(this.selectors.trackersList.children);
-                
-                trackers.sort((a, b) => {
-                    const idA = a.id.split('-')[1];
-                    const idB = b.id.split('-')[1];
-                    
-                    if (criteria === 'start') {
-                        const startA = new Date(document.getElementById(`start-${idA}`)?.value || '9999-12-31');
-                        const startB = new Date(document.getElementById(`start-${idB}`)?.value || '9999-12-31');
-                        return startA - startB;
-                    } else if (criteria === 'end') {
-                        const endA = new Date(document.getElementById(`endDate-${idA}`)?.value || '9999-12-31');
-                        const endB = new Date(document.getElementById(`endDate-${idB}`)?.value || '9999-12-31');
-                        return endA - endB;
-                    } else if (criteria === 'personal') {
-                        const catA = document.getElementById(`category-${idA}`)?.value === 'Личные' ? 0 : 1;
-                        const catB = document.getElementById(`category-${idB}`)?.value === 'Личные' ? 0 : 1;
-                        return catA - catB;
-                    } else if (criteria === 'work') {
-                        const catA = document.getElementById(`category-${idA}`)?.value === 'Рабочие' ? 0 : 1;
-                        const catB = document.getElementById(`category-${idB}`)?.value === 'Рабочие' ? 0 : 1;
-                        return catA - catB;
-                    }
-                    return 0;
-                });
-                
-                trackers.forEach(tracker => this.selectors.trackersList.appendChild(tracker));
-            },
-
-            // ===== SORTABLE DRAG & DROP =====
-            initSortable() {
-                if (this.currentSort !== 'manual') return;
-                
-                if (window.SortableInstance) {
-                    window.SortableInstance.destroy();
-                }
-                
-                window.SortableInstance = new Sortable(this.selectors.trackersList, {
-                    animation: 150,
-                    handle: '.tracker-header',
-                    draggable: '.tracker',
-                    ghostClass: 'dragging',
-                    onEnd: () => {
-                        this.saveTrackersOrder();
-                        this.showNotification('Порядок сохранён', 'success');
-                    }
-                });
-            },
-
-            saveTrackersOrder() {
-                const order = Array.from(this.selectors.trackersList.children)
-                    .map(el => parseInt(el.id.split('-')[1]));
-                this.trackersOrder = order;
-                localStorage.setItem('trackersOrder', JSON.stringify(order));
-            },
-
-            // ===== STORAGE =====
-            
-            saveTrackers() {
-                const trackers = [];
-                document.querySelectorAll('.tracker').forEach(tracker => {
-                    const id = tracker.id.split('-')[1];
-                    const textEl = document.getElementById(`text-${id}`);
-                    const text = textEl?.value || document.getElementById(`text-display-${id}`)?.textContent || '';
-                    
-                    trackers.push({
-                        id: parseInt(id),
-                        text: text.trim(),
-                        description: document.getElementById(`description-${id}`)?.value || 
-                                   document.getElementById(`description-display-${id}`)?.textContent || '',
-                        start: document.getElementById(`start-${id}`)?.value || '',
-                        end: document.getElementById(`endOption-${id}`)?.value === 'custom' ? 
-                             (document.getElementById(`endDate-${id}`)?.value || '') : '',
-                        category: document.getElementById(`category-${id}`)?.value || 'Без категории',
-                        repeat: document.getElementById(`repeat-${id}`)?.value || 'none',
-                        createdAt: tracker.dataset.createdAt || new Date().toISOString()
-                    });
-                });
-                
-                localStorage.setItem('timeTrackers', JSON.stringify(trackers));
-            },
-
-            loadTrackers() {
-                const saved = localStorage.getItem('timeTrackers');
-                if (saved) {
-                    const trackers = JSON.parse(saved);
-                    trackers.forEach(data => {
-                        this.addTracker(data);
-                        if (data.id > this.trackerCount) {
-                            this.trackerCount = data.id;
-                        }
-                    });
-                    
-                    // Restore order if manual sort
-                    if (this.currentSort === 'manual' && this.trackersOrder.length) {
-                        this.trackersOrder.forEach(id => {
-                            const tracker = document.getElementById(`tracker-${id}`);
-                            if (tracker) {
-                                this.selectors.trackersList.appendChild(tracker);
-                            }
-                        });
-                    } else {
-                        this.sortTrackers(this.currentSort);
-                    }
-                    
-                    this.filterTrackers(this.currentFilter);
-                } else {
-                    // Add demo tracker for first-time users
-                    this.addTracker({
-                        text: '🎉 Добро пожаловать!',
-                        description: 'Это ваш первый трекер. Нажмите "Редактировать" чтобы настроить.',
-                        start: new Date().toISOString().split('T')[0],
-                        category: 'Без категории'
-                    });
-                }
-            },
-
-            // ===== STATS =====
-            
-            showStats() {
-                const trackers = JSON.parse(localStorage.getItem('timeTrackers') || '[]');
-                const now = new Date();
-                
-                const active = trackers.filter(t => !t.end || new Date(t.end) > now).length;
-                const expired = trackers.filter(t => t.end && new Date(t.end) <= now).length;
-                const total = trackers.length;
-                
-                // Calculate average duration
-                const durations = trackers
-                    .filter(t => t.start && t.end)
-                    .map(t => {
-                        const diff = new Date(t.end) - new Date(t.start);
-                        return diff > 0 ? diff : 0;
-                    });
-                const avgDays = durations.length > 0 
-                    ? (durations.reduce((a, b) => a + b, 0) / durations.length / (1000 * 60 * 60 * 24)).toFixed(1)
-                    : 0;
-                
-                // Update stats
-                this.selectors.statActive.textContent = active;
-                this.selectors.statExpired.textContent = expired;
-                this.selectors.statTotal.textContent = total;
-                this.selectors.statAvg.textContent = `${avgDays} дн`;
-                
-                // Update chart
-                this.updateStatsChart(active, expired, 
-                    trackers.filter(t => t.category === 'Рабочие').length,
-                    trackers.filter(t => t.category === 'Личные').length);
-                
-                this.showModal('statsModal');
-            },
-
-            updateStatsChart(active, expired, work, personal) {
-                const ctx = this.selectors.statsChart.getContext('2d');
-                
-                if (this.statsChart) {
-                    this.statsChart.destroy();
-                }
-                
-                this.statsChart = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Активные', 'Завершённые', 'Рабочие', 'Личные'],
-                        datasets: [{
-                            data: [active, expired, work, personal],
-                            backgroundColor: [
-                                'var(--tg-accent)',
-                                'var(--tg-danger)',
-                                'var(--tg-category-work)',
-                                'var(--tg-category-personal)'
-                            ],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    color: getComputedStyle(document.documentElement).getPropertyValue('--tg-text-primary'),
-                                    padding: 15
-                                }
-                            }
-                        },
-                        cutout: '60%'
-                    }
-                });
-            },
-
-            // ===== UTILITIES =====
-            
-            showModal(modalId) {
-                document.getElementById(modalId).classList.add('active');
-                document.body.style.overflow = 'hidden';
-            },
-
-            hideModal(modalId) {
-                document.getElementById(modalId).classList.remove('active');
-                document.body.style.overflow = '';
-            },
-
-            showNotification(message, type = 'success') {
-                const notification = this.selectors.notification;
-                const text = this.selectors.notificationText;
-                const icon = notification.querySelector('i');
-                
-                // Clear previous timeout
-                if (this.notificationTimeout) {
-                    clearTimeout(this.notificationTimeout);
-                }
-                
-                // Update content
-                text.textContent = message;
-                notification.className = `notification ${type}`;
-                
-                // Update icon
-                icon.className = type === 'success' ? 'fas fa-check-circle' :
-                                type === 'error' ? 'fas fa-exclamation-circle' :
-                                'fas fa-exclamation-triangle';
-                
-                // Show
-                notification.classList.add('show');
-                
-                // Auto-hide
-                this.notificationTimeout = setTimeout(() => {
-                    notification.classList.remove('show');
-                }, 3000);
-            },
-
-            confirmDelete(id) {
-                const tracker = document.getElementById(`tracker-${id}`);
-                const name = document.getElementById(`text-display-${id}`)?.textContent || 
-                           document.getElementById(`text-${id}`)?.value || 'Этот трекер';
-                
-                document.getElementById('deleteTrackerName').textContent = name;
-                document.getElementById('confirmDeleteBtn').onclick = () => {
-                    this.deleteTracker(id);
-                    this.hideModal('deleteModal');
-                };
-                this.showModal('deleteModal');
-            },
-
-            deleteTracker(id) {
-                const tracker = document.getElementById(`tracker-${id}`);
-                if (tracker) {
-                    // Animate out
-                    tracker.style.opacity = '0';
-                    tracker.style.transform = 'translateX(-20px)';
-                    setTimeout(() => {
-                        tracker.remove();
-                        delete this.collapsedState[id];
-                        localStorage.setItem('collapsedState', JSON.stringify(this.collapsedState));
-                        this.saveTrackers();
-                        this.updateEmptyState();
-                        this.showNotification('Трекер удалён', 'success');
-                    }, 200);
-                }
-            },
-
-            updateEmptyState() {
-                const visible = document.querySelectorAll('.tracker:not(.hidden)').length;
-                this.selectors.emptyState.classList.toggle('hidden', visible > 0);
-            },
-
-            applyFontSize() {
-                document.documentElement.style.setProperty('--tg-font-base', `${this.fontSize}px`);
-                this.selectors.fontPreview.style.fontSize = `${this.fontSize}px`;
-                
-                // Update all text elements
-                document.querySelectorAll('input, select, textarea, button, label, .text-display, .detail-display, .tracker-meta, .countdown').forEach(el => {
-                    el.style.fontSize = `${this.fontSize}px`;
-                });
-            },
-
-            escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            },
-
-            // ===== EXPORT/IMPORT =====
-            
-            exportData() {
-                const data = {
-                    trackers: JSON.parse(localStorage.getItem('timeTrackers') || '[]'),
-                    settings: {
-                        sortPreference: this.currentSort,
-                        fontSize: this.fontSize,
-                        collapsedState: this.collapsedState,
-                        trackersOrder: this.trackersOrder
-                    },
-                    exportedAt: new Date().toISOString(),
-                    version: '2.0'
-                };
-                
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `trackers-backup-${new Date().toISOString().split('T')[0]}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                this.showNotification('Данные экспортированы', 'success');
-            },
-
-            importData(file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        
-                        if (data.trackers && Array.isArray(data.trackers)) {
-                            // Clear existing
-                            localStorage.removeItem('timeTrackers');
-                            this.selectors.trackersList.innerHTML = '';
-                            this.trackerCount = 0;
-                            
-                            // Import trackers
-                            data.trackers.forEach(tracker => {
-                                this.addTracker(tracker);
-                                if (tracker.id > this.trackerCount) {
-                                    this.trackerCount = tracker.id;
-                                }
-                            });
-                            
-                            // Import settings
-                            if (data.settings) {
-                                if (data.settings.sortPreference) {
-                                    this.currentSort = data.settings.sortPreference;
-                                    localStorage.setItem('sortPreference', this.currentSort);
-                                }
-                                if (data.settings.fontSize) {
-                                    this.fontSize = data.settings.fontSize;
-                                    localStorage.setItem('fontSize', this.fontSize);
-                                    this.applyFontSize();
-                                }
-                                if (data.settings.collapsedState) {
-                                    this.collapsedState = data.settings.collapsedState;
-                                    localStorage.setItem('collapsedState', JSON.stringify(this.collapsedState));
-                                }
-                            }
-                            
-                            this.sortTrackers(this.currentSort);
-                            this.filterTrackers(this.currentFilter);
-                            this.updateEmptyState();
-                            
-                            this.showNotification('Данные импортированы', 'success');
-                            
-                            // Refresh page to apply all changes
-                            setTimeout(() => location.reload(), 500);
-                        } else {
-                            throw new Error('Неверный формат файла');
-                        }
-                    } catch (err) {
-                        console.error('Import error:', err);
-                        this.showNotification('Ошибка импорта: ' + err.message, 'error');
-                    }
-                };
-                reader.readAsText(file);
-            },
-
-            // ===== DEADLINE CHECKS =====
-            
-            checkDeadlines() {
-                const trackers = document.querySelectorAll('.tracker');
-                const now = new Date();
-                
-                trackers.forEach(tracker => {
-                    const id = tracker.id.split('-')[1];
-                    const endDate = document.getElementById(`endDate-${id}`)?.value;
-                    const text = document.getElementById(`text-display-${id}`)?.textContent || '';
-                    
-                    if (endDate) {
-                        const end = new Date(endDate);
-                        const diffDays = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
-                        
-                        // Notify 3 days before deadline
-                        if (diffDays > 0 && diffDays <= 3 && !tracker.dataset.notified) {
-                            if (window.Telegram?.WebApp) {
-                                Telegram.WebApp.showPopup({
-                                    title: '⏰ Напоминание',
-                                    message: `До дедлайна "${text}" осталось ${diffDays} дн.`,
-                                    buttons: [{ type: 'ok' }]
-                                });
-                            } else {
-                                this.showNotification(`⏰ "${text}": осталось ${diffDays} дн.`, 'warning');
-                            }
-                            tracker.dataset.notified = 'true';
-                        }
-                    }
-                });
-            }
-        };
-
-        // Initialize app when DOM is ready
-        document.addEventListener('DOMContentLoaded', () => {
-            App.init();
-        });
-
-        // Global functions for inline onclick handlers
-        window.App = App;
-    </script>
+<!-- Header -->
+<header class="header">
+<h1><i class="fas fa-stopwatch"></i> Счетчики</h1>
+<div class="header-actions">
+<button class="header-btn" id="statsBtn" title="Статистика" aria-label="Открыть статистику">
+<i class="fas fa-chart-bar"></i>
+</button>
+<button class="header-btn" id="settingsBtn" title="Настройки" aria-label="Открыть настройки">
+<i class="fas fa-cog"></i>
+</button>
+<button class="header-btn danger" id="exportBtn" title="Экспорт данных" aria-label="Экспортировать данные">
+<i class="fas fa-download"></i>
+</button>
+</div>
+</header>
+<!-- Main Container -->
+<main class="container">
+<!-- Quick Add -->
+<div class="quick-add">
+<input type="text" id="quickText" placeholder="Новое событие..." aria-label="Название события">
+<select id="quickCategory" aria-label="Категория">
+<option value="Без категории">📁</option>
+<option value="Рабочие">🏢 Рабочие</option>
+<option value="Личные">👤 Личные</option>
+</select>
+<button id="quickAddBtn" title="Добавить" aria-label="Добавить трекер">
+<i class="fas fa-plus"></i>
+</button>
+</div>
+<!-- Search -->
+<div class="search-box">
+<i class="fas fa-search"></i>
+<input type="text" id="searchInput" placeholder="Поиск по названию или описанию..." aria-label="Поиск">
+</div>
+<!-- Filter Chips -->
+<div class="filter-chips" role="tablist" aria-label="Фильтры">
+<span class="chip active" data-filter="all" role="tab" aria-selected="true" tabindex="0">Все</span>
+<span class="chip" data-filter="active" role="tab" aria-selected="false" tabindex="0">Активные</span>
+<span class="chip" data-filter="expired" role="tab" aria-selected="false" tabindex="0">Завершённые</span>
+<span class="chip" data-filter="work" role="tab" aria-selected="false" tabindex="0">🏢 Рабочие</span>
+<span class="chip" data-filter="personal" role="tab" aria-selected="false" tabindex="0">👤 Личные</span>
+</div>
+<!-- Trackers List -->
+<div id="trackersList" class="trackers-list" role="list" aria-label="Список трекеров">
+<!-- Trackers will be inserted here -->
+</div>
+<!-- Empty State -->
+<div id="emptyState" class="empty-state hidden">
+<i class="fas fa-clipboard-list"></i>
+<p>Нет трекеров</p>
+<button class="btn" onclick="App.quickAddTracker()">
+<i class="fas fa-plus"></i> Создать первый
+</button>
+</div>
+<!-- Add Button (fallback) -->
+<div class="text-center mt-16">
+<button class="btn secondary" onclick="App.addTrackerModal()">
+<i class="fas fa-plus"></i> Добавить трекер
+</button>
+</div>
+</main>
+<!-- Stats Modal -->
+<div id="statsModal" class="modal" role="dialog" aria-labelledby="statsTitle" aria-modal="true">
+<div class="modal-content">
+<div class="modal-header">
+<h3 id="statsTitle"><i class="fas fa-chart-pie"></i> Статистика</h3>
+<button class="modal-close" onclick="App.hideModal('statsModal')" aria-label="Закрыть">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="modal-body">
+<div class="stats-grid">
+<div class="stat-card">
+<div class="stat-label">Активных</div>
+<div class="stat-value" id="statActive">0</div>
+</div>
+<div class="stat-card">
+<div class="stat-label">Завершённых</div>
+<div class="stat-value" id="statExpired">0</div>
+</div>
+<div class="stat-card">
+<div class="stat-label">Всего</div>
+<div class="stat-value" id="statTotal">0</div>
+</div>
+<div class="stat-card">
+<div class="stat-label">Средний срок</div>
+<div class="stat-value" id="statAvg">0 дн</div>
+</div>
+</div>
+<div class="chart-container">
+<canvas id="statsChart"></canvas>
+</div>
+</div>
+<div class="modal-footer">
+<button class="btn secondary" onclick="App.hideModal('statsModal')">Закрыть</button>
+</div>
+</div>
+</div>
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal" role="dialog" aria-labelledby="settingsTitle" aria-modal="true">
+<div class="modal-content">
+<div class="modal-header">
+<h3 id="settingsTitle"><i class="fas fa-sliders-h"></i> Настройки</h3>
+<button class="modal-close" onclick="App.hideModal('settingsModal')" aria-label="Закрыть">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="modal-body">
+<div class="settings-grid">
+<div class="setting-item">
+<label for="sortSelect">Сортировка:</label>
+<select id="sortSelect">
+<option value="start">По дате начала</option>
+<option value="end">По дате окончания</option>
+<option value="personal">Личные primero</option>
+<option value="work">Рабочие primero</option>
+<option value="manual">Ручная (drag & drop)</option>
+</select>
+</div>
+<div class="setting-item">
+<label for="fontSizeSlider">Размер шрифта: <span id="fontSizeValue">16</span>px</label>
+<input type="range" id="fontSizeSlider" min="14" max="20" step="2" value="16">
+</div>
+<div class="setting-item">
+<label>Предпросмотр:</label>
+</div>
+<div class="font-preview" id="fontPreview">
+Пример текста для предпросмотра шрифта
+</div>
+<div class="setting-item">
+<label>Экспорт/Импорт:</label>
+</div>
+<div class="flex gap-8">
+<button class="btn secondary" id="importBtn">
+<i class="fas fa-upload"></i> Импорт
+</button>
+<button class="btn secondary" id="exportModalBtn">
+<i class="fas fa-download"></i> Экспорт
+</button>
+<input type="file" id="importFile" accept=".json" class="hidden">
+</div>
+</div>
+</div>
+<div class="modal-footer">
+<button class="btn secondary" onclick="App.hideModal('settingsModal')">Закрыть</button>
+</div>
+</div>
+</div>
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal" role="alertdialog" aria-labelledby="deleteTitle" aria-modal="true">
+<div class="modal-content">
+<div class="modal-header">
+<h3 id="deleteTitle"><i class="fas fa-trash-alt"></i> Удалить трекер?</h3>
+<button class="modal-close" onclick="App.hideModal('deleteModal')" aria-label="Закрыть">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="modal-body">
+<p>Вы уверены, что хотите удалить этот трекер? Это действие нельзя отменить.</p>
+<p id="deleteTrackerName" class="mt-8" style="font-weight: 500; color: var(--tg-text-primary);"></p>
+</div>
+<div class="modal-footer">
+<button class="btn secondary" onclick="App.hideModal('deleteModal')">Отмена</button>
+<button class="btn danger" id="confirmDeleteBtn">
+<i class="fas fa-trash"></i> Удалить
+</button>
+</div>
+</div>
+</div>
+<!-- Notification -->
+<div id="notification" class="notification" role="status" aria-live="polite">
+<i class="fas fa-check-circle"></i>
+<span id="notificationText">Сохранено</span>
+</div>
+<script>
+// ===== APP STATE & CONFIG =====
+const App = {
+trackerCount: 0,
+currentFilter: 'all',
+currentSort: localStorage.getItem('sortPreference') || 'start',
+fontSize: localStorage.getItem('fontSize') || '16',
+collapsedState: JSON.parse(localStorage.getItem('collapsedState')) || {},
+trackersOrder: JSON.parse(localStorage.getItem('trackersOrder')) || [],
+notificationTimeout: null,
+searchTimeout: null,
+recognition: null,
+statsChart: null,
+sortableInstance: null,
+deleteCallback: null,
+selectors: {},
+// Cache DOM selectors
+initSelectors() {
+this.selectors = {
+trackersList: document.getElementById('trackersList'),
+emptyState: document.getElementById('emptyState'),
+searchInput: document.getElementById('searchInput'),
+sortSelect: document.getElementById('sortSelect'),
+fontSizeSlider: document.getElementById('fontSizeSlider'),
+fontSizeValue: document.getElementById('fontSizeValue'),
+fontPreview: document.getElementById('fontPreview'),
+notification: document.getElementById('notification'),
+notificationText: document.getElementById('notificationText'),
+quickText: document.getElementById('quickText'),
+quickCategory: document.getElementById('quickCategory'),
+quickAddBtn: document.getElementById('quickAddBtn'),
+statsBtn: document.getElementById('statsBtn'),
+settingsBtn: document.getElementById('settingsBtn'),
+exportBtn: document.getElementById('exportBtn'),
+exportModalBtn: document.getElementById('exportModalBtn'),
+importBtn: document.getElementById('importBtn'),
+importFile: document.getElementById('importFile'),
+statActive: document.getElementById('statActive'),
+statExpired: document.getElementById('statExpired'),
+statTotal: document.getElementById('statTotal'),
+statAvg: document.getElementById('statAvg'),
+statsChart: document.getElementById('statsChart'),
+};
+},
+// Initialize app
+init() {
+this.initSelectors();
+this.initTelegram();
+this.initEventListeners();
+this.initVoiceRecognition();
+this.applyFontSize();
+this.loadTrackers();
+this.initSortable();
+this.updateEmptyState();
+// Start timer updates
+setInterval(() => this.updateAllTimers(), 1000);
+// Check deadlines every minute
+setInterval(() => this.checkDeadlines(), 60000);
+},
+// Telegram WebApp setup
+initTelegram() {
+if (window.Telegram?.WebApp) {
+Telegram.WebApp.ready();
+Telegram.WebApp.expand();
+// ✅ ИСПРАВЛЕНО: Получаем вычисленное значение CSS-переменной
+const bgColor = getComputedStyle(document.documentElement)
+.getPropertyValue('--tg-bg-primary').trim() || '#ffffff';
+Telegram.WebApp.setHeaderColor(bgColor);
+Telegram.WebApp.setBackgroundColor(bgColor);
+}
+},
+// Event listeners
+initEventListeners() {
+// Quick add
+this.selectors.quickAddBtn.addEventListener('click', () => this.quickAddTracker());
+this.selectors.quickText.addEventListener('keypress', (e) => {
+if (e.key === 'Enter') this.quickAddTracker();
+});
+// Search with debounce
+this.selectors.searchInput.addEventListener('input', (e) => {
+clearTimeout(this.searchTimeout);
+this.searchTimeout = setTimeout(() => {
+this.filterTrackers(this.currentFilter);
+}, 300);
+});
+// Filter chips
+document.querySelectorAll('.chip').forEach(chip => {
+chip.addEventListener('click', () => {
+document.querySelectorAll('.chip').forEach(c => {
+c.classList.remove('active');
+c.setAttribute('aria-selected', 'false');
+});
+chip.classList.add('active');
+chip.setAttribute('aria-selected', 'true');
+this.currentFilter = chip.dataset.filter;
+this.filterTrackers(this.currentFilter);
+});
+// Keyboard support
+chip.addEventListener('keypress', (e) => {
+if (e.key === 'Enter' || e.key === ' ') {
+e.preventDefault();
+chip.click();
+}
+});
+});
+// Stats modal
+this.selectors.statsBtn.addEventListener('click', () => this.showStats());
+// Settings modal
+this.selectors.settingsBtn.addEventListener('click', () => {
+this.selectors.sortSelect.value = this.currentSort;
+this.selectors.fontSizeSlider.value = this.fontSize;
+this.selectors.fontSizeValue.textContent = this.fontSize;
+this.showModal('settingsModal');
+});
+// Sort change
+this.selectors.sortSelect.addEventListener('change', (e) => {
+this.currentSort = e.target.value;
+localStorage.setItem('sortPreference', this.currentSort);
+if (this.currentSort === 'manual') {
+this.initSortable();
+} else {
+this.sortTrackers(this.currentSort);
+}
+this.showNotification('Сортировка обновлена', 'success');
+});
+// Font size
+this.selectors.fontSizeSlider.addEventListener('input', (e) => {
+this.fontSize = e.target.value;
+this.selectors.fontSizeValue.textContent = this.fontSize;
+this.applyFontSize();
+localStorage.setItem('fontSize', this.fontSize);
+});
+// Export/Import
+this.selectors.exportBtn.addEventListener('click', () => this.exportData());
+this.selectors.exportModalBtn.addEventListener('click', () => this.exportData());
+this.selectors.importBtn.addEventListener('click', () => this.selectors.importFile.click());
+this.selectors.importFile.addEventListener('change', (e) => {
+if (e.target.files[0]) {
+this.importData(e.target.files[0]);
+e.target.value = '';
+}
+});
+// Close modals on backdrop click
+document.querySelectorAll('.modal').forEach(modal => {
+modal.addEventListener('click', (e) => {
+if (e.target === modal) {
+modal.classList.remove('active');
+}
+});
+});
+// Keyboard: Escape to close modals
+document.addEventListener('keydown', (e) => {
+if (e.key === 'Escape') {
+document.querySelectorAll('.modal.active').forEach(modal => {
+modal.classList.remove('active');
+});
+}
+});
+},
+// Voice recognition setup
+initVoiceRecognition() {
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+this.recognition = new SpeechRecognition();
+this.recognition.lang = 'ru-RU';
+this.recognition.continuous = false;
+this.recognition.interimResults = false;
+this.recognition.onresult = (event) => {
+const transcript = event.results[0][0].transcript;
+if (this.currentVoiceInput) {
+this.currentVoiceInput.value = transcript;
+this.showNotification('Текст распознан', 'success');
+}
+};
+this.recognition.onerror = (event) => {
+console.error('Speech recognition error:', event.error);
+this.showNotification('Ошибка распознавания', 'error');
+if (this.currentVoiceBtn) {
+this.currentVoiceBtn.classList.remove('recording', 'active');
+}
+};
+this.recognition.onend = () => {
+if (this.currentVoiceBtn) {
+this.currentVoiceBtn.classList.remove('recording', 'active');
+}
+};
+}
+},
+// Start voice input for a specific field
+startVoiceInput(inputElement, btnElement) {
+if (!this.recognition) {
+this.showNotification('Голосовой ввод не поддерживается', 'warning');
+return;
+}
+this.currentVoiceInput = inputElement;
+this.currentVoiceBtn = btnElement;
+btnElement.classList.add('active', 'recording');
+try {
+this.recognition.start();
+} catch (e) {
+console.error('Failed to start recognition:', e);
+btnElement.classList.remove('recording', 'active');
+this.showNotification('Не удалось начать запись', 'error');
+}
+},
+// ===== TRACKER FUNCTIONS =====
+// Create tracker HTML
+createTrackerHTML(id, data) {
+const isCollapsed = this.collapsedState[id] || false;
+const category = data.category || 'Без категории';
+const categoryClass = category === 'Рабочие' ? 'work' : category === 'Личные' ? 'personal' : 'other';
+const startDate = data.start ? new Date(data.start + 'T00:00:00') : null;
+const startStr = startDate ? startDate.toLocaleDateString('ru-RU') : 'Нет даты';
+return `
+<article class="tracker" id="tracker-${id}" role="listitem" data-category="${category}" aria-expanded="${!isCollapsed}">
+<div class="category-bar ${categoryClass}"></div>
+<div class="tracker-header">
+<div class="tracker-title">
+<h3 id="text-display-${id}">${this.escapeHtml(data.text || 'Новое событие')}</h3>
+<input type="text" id="text-${id}" class="hidden" value="${this.escapeHtml(data.text || '')}"
+placeholder="Название события" aria-label="Название">
+<div class="tracker-meta">
+<span><i class="fas fa-calendar"></i> ${startStr}</span>
+${category !== 'Без категории' ? `<span>• ${category}</span>` : ''}
+</div>
+</div>
+<div class="tracker-actions">
+<button class="action-btn voice-btn" title="Голосовой ввод" aria-label="Голосовой ввод"
+onclick="App.startVoiceInput(document.getElementById('text-${id}'), this)">
+<i class="fas fa-microphone"></i>
+</button>
+<button class="action-btn edit" title="Редактировать" aria-label="Редактировать"
+onclick="App.toggleEdit(${id})">
+<i class="fas fa-edit"></i>
+</button>
+<button class="action-btn" title="${isCollapsed ? 'Развернуть' : 'Свернуть'}" aria-label="${isCollapsed ? 'Развернуть' : 'Свернуть'}"
+onclick="App.toggleTracker(${id})">
+<i class="fas fa-chevron-${isCollapsed ? 'down' : 'up'}"></i>
+</button>
+<button class="action-btn delete" title="Удалить" aria-label="Удалить"
+onclick="App.confirmDelete(${id})">
+<i class="fas fa-trash"></i>
+</button>
+</div>
+</div>
+<div class="tracker-summary">
+<div class="time-display" id="time-${id}">Загрузка...</div>
+<div class="countdown" id="countdown-${id}"></div>
+<div class="progress-wrapper" id="progressWrapper-${id}" style="display:none;">
+<div class="progress-bar">
+<div class="progress" id="progress-${id}"></div>
+</div>
+<div class="progress-text" id="progressText-${id}"></div>
+</div>
+</div>
+<div class="tracker-details ${isCollapsed ? 'collapsed' : ''}" id="details-${id}" role="region"
+aria-labelledby="text-display-${id}">
+<div class="detail-row">
+<label for="description-${id}">Описание:</label>
+<div id="description-display-${id}" class="detail-display">${this.escapeHtml(data.description || '')}</div>
+<textarea id="description-${id}" class="hidden" placeholder="Дополнительная информация...">${this.escapeHtml(data.description || '')}</textarea>
+</div>
+<div class="detail-row">
+<label for="category-${id}">Категория:</label>
+<select id="category-${id}" onchange="App.updateCategory(${id}); App.saveTrackers()">
+<option value="Без категории" ${category === 'Без категории' ? 'selected' : ''}>📁 Без категории</option>
+<option value="Рабочие" ${category === 'Рабочие' ? 'selected' : ''}>🏢 Рабочие</option>
+<option value="Личные" ${category === 'Личные' ? 'selected' : ''}>👤 Личные</option>
+</select>
+</div>
+<div class="detail-row">
+<label for="repeat-${id}">Повторение:</label>
+<select id="repeat-${id}" onchange="App.saveTrackers()">
+<option value="none" ${data.repeat === 'none' ? 'selected' : ''}>Не повторять</option>
+<option value="daily" ${data.repeat === 'daily' ? 'selected' : ''}>🔄 Ежедневно</option>
+<option value="weekly" ${data.repeat === 'weekly' ? 'selected' : ''}>📅 Еженедельно</option>
+<option value="monthly" ${data.repeat === 'monthly' ? 'selected' : ''}>🗓️ Ежемесячно</option>
+</select>
+</div>
+<div class="detail-row">
+<label for="start-${id}">Дата начала:</label>
+<input type="date" id="start-${id}" value="${data.start || ''}"
+onchange="App.updateTracker(${id}); App.saveTrackers()">
+</div>
+<div class="detail-row">
+<label>Дата окончания:</label>
+<div class="flex gap-8 w-full">
+<select id="endOption-${id}" style="flex:1;" onchange="App.toggleEndDate(${id})">
+<option value="none" ${!data.end ? 'selected' : ''}>Без даты</option>
+<option value="custom" ${data.end ? 'selected' : ''}>Выбрать дату</option>
+</select>
+<input type="date" id="endDate-${id}" value="${data.end || ''}"
+style="flex:2; ${!data.end ? 'display:none;' : ''}"
+onchange="App.updateTracker(${id}); App.saveTrackers()">
+</div>
+</div>
+<div class="edit-buttons" id="editButtons-${id}" style="display:none;">
+<button class="btn" onclick="App.saveTracker(${id})">
+<i class="fas fa-save"></i> Сохранить
+</button>
+<button class="btn secondary" onclick="App.cancelEdit(${id})">
+<i class="fas fa-times"></i> Отмена
+</button>
+</div>
+</div>
+</article>
+`;
+},
+// Add new tracker
+addTracker(data = {}) {
+const id = ++this.trackerCount;
+const trackerData = {
+id,
+text: data.text || 'Новое событие',
+description: data.description || '',
+start: data.start || '',
+end: data.end || '',
+category: data.category || 'Без категории',
+repeat: data.repeat || 'none',
+createdAt: new Date().toISOString()
+};
+const trackerEl = document.createElement('div');
+trackerEl.innerHTML = this.createTrackerHTML(id, trackerData);
+this.selectors.trackersList.appendChild(trackerEl.firstElementChild);
+this.updateTracker(id);
+this.saveTrackers();
+this.sortTrackers(this.currentSort);
+this.filterTrackers(this.currentFilter);
+this.updateEmptyState();
+return id;
+},
+// Quick add from header
+quickAddTracker() {
+const text = this.selectors.quickText.value.trim();
+const category = this.selectors.quickCategory.value;
+if (!text) {
+this.showNotification('Введите название события', 'warning');
+this.selectors.quickText.focus();
+return;
+}
+const id = this.addTracker({ text, category, start: new Date().toISOString().split('T')[0] });
+this.selectors.quickText.value = '';
+this.showNotification('Трекер добавлен', 'success');
+// Auto-expand and focus edit
+setTimeout(() => {
+this.toggleEdit(id);
+document.getElementById(`text-${id}`)?.focus();
+}, 100);
+},
+// Add tracker modal (for fallback button)
+addTrackerModal() {
+this.selectors.quickText.focus();
+this.showNotification('Введите название в поле выше', 'info');
+},
+// Toggle edit mode
+toggleEdit(id) {
+const display = document.getElementById(`text-display-${id}`);
+const input = document.getElementById(`text-${id}`);
+const descDisplay = document.getElementById(`description-display-${id}`);
+const descInput = document.getElementById(`description-${id}`);
+const editButtons = document.getElementById(`editButtons-${id}`);
+const isEditing = !input.classList.contains('hidden');
+if (isEditing) {
+// Cancel edit
+display.classList.remove('hidden');
+input.classList.add('hidden');
+descDisplay.classList.remove('hidden');
+descInput.classList.add('hidden');
+editButtons.style.display = 'none';
+input.value = display.textContent;
+descInput.value = descDisplay.textContent;
+} else {
+// Start edit
+display.classList.add('hidden');
+input.classList.remove('hidden');
+descDisplay.classList.add('hidden');
+descInput.classList.remove('hidden');
+editButtons.style.display = 'flex';
+input.focus();
+input.select();
+}
+},
+// Save tracker edits
+saveTracker(id) {
+const textInput = document.getElementById(`text-${id}`);
+const text = textInput.value.trim();
+if (!text) {
+this.showNotification('Название не может быть пустым', 'error');
+textInput.focus();
+return;
+}
+const startDate = document.getElementById(`start-${id}`).value;
+const endDate = document.getElementById(`endDate-${id}`).value;
+// ✅ ИСПРАВЛЕНО: Сравнение дат с учётом времени
+if (startDate && endDate) {
+const start = new Date(startDate + 'T00:00:00');
+const end = new Date(endDate + 'T00:00:00');
+if (start > end) {
+this.showNotification('Дата окончания не может быть раньше начала', 'error');
+return;
+}
+}
+// Update display values
+document.getElementById(`text-display-${id}`).textContent = text;
+document.getElementById(`description-display-${id}`).textContent =
+document.getElementById(`description-${id}`).value;
+// Toggle back to view mode
+this.toggleEdit(id);
+this.updateTracker(id);
+this.saveTrackers();
+this.showNotification('Изменения сохранены', 'success');
+},
+// Cancel edit
+cancelEdit(id) {
+this.toggleEdit(id);
+},
+// Toggle tracker collapse
+toggleTracker(id) {
+const tracker = document.getElementById(`tracker-${id}`);
+const details = document.getElementById(`details-${id}`);
+const toggleBtn = tracker.querySelector('.tracker-actions .action-btn:not(.delete):not(.edit):not(.voice-btn)');
+const icon = toggleBtn.querySelector('i');
+const isCollapsed = details.classList.contains('collapsed');
+if (isCollapsed) {
+details.classList.remove('collapsed');
+icon.className = 'fas fa-chevron-up';
+toggleBtn.setAttribute('aria-label', 'Свернуть');
+tracker.setAttribute('aria-expanded', 'true');
+this.collapsedState[id] = false;
+} else {
+details.classList.add('collapsed');
+icon.className = 'fas fa-chevron-down';
+toggleBtn.setAttribute('aria-label', 'Развернуть');
+tracker.setAttribute('aria-expanded', 'false');
+this.collapsedState[id] = true;
+}
+localStorage.setItem('collapsedState', JSON.stringify(this.collapsedState));
+},
+// Update category indicator
+updateCategory(id) {
+const category = document.getElementById(`category-${id}`).value;
+const bar = document.querySelector(`#tracker-${id} .category-bar`);
+bar.className = 'category-bar ' + (category === 'Рабочие' ? 'work' : category === 'Личные' ? 'personal' : 'other');
+document.querySelector(`#tracker-${id}`).dataset.category = category;
+},
+// Toggle end date input
+toggleEndDate(id) {
+const option = document.getElementById(`endOption-${id}`).value;
+const input = document.getElementById(`endDate-${id}`);
+input.style.display = option === 'custom' ? 'block' : 'none';
+if (option === 'none') input.value = '';
+this.updateTracker(id);
+},
+// Update timer calculations
+updateTracker(id) {
+const tracker = document.getElementById(`tracker-${id}`);
+if (!tracker) return;
+const startDate = document.getElementById(`start-${id}`).value;
+const endOption = document.getElementById(`endOption-${id}`).value;
+const endDate = endOption === 'custom' ? document.getElementById(`endDate-${id}`).value : null;
+const customText = document.getElementById(`text-${id}`).value || document.getElementById(`text-display-${id}`).textContent;
+const repeat = document.getElementById(`repeat-${id}`).value;
+const now = new Date();
+now.setHours(0, 0, 0, 0);
+// Update start date display
+const startDisplay = tracker.querySelector('.tracker-meta span:first-child');
+if (startDate) {
+startDisplay.innerHTML = `<i class="fas fa-calendar"></i> ${new Date(startDate + 'T00:00:00').toLocaleDateString('ru-RU')}`;
+}
+if (!startDate || isNaN(new Date(startDate + 'T00:00:00').getTime())) {
+document.getElementById(`time-${id}`).textContent = '📅 Выберите дату начала';
+document.getElementById(`countdown-${id}`).textContent = '';
+document.getElementById(`progressWrapper-${id}`).style.display = 'none';
+return;
+}
+const start = new Date(startDate + 'T00:00:00');
+const diffTime = Math.abs(now - start);
+const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+// Format elapsed time
+let timeString = `${customText} • `;
+if (diffDays >= 365) {
+const years = Math.floor(diffDays / 365);
+timeString += `${years} г. ${Math.floor((diffDays % 365) / 30)} мес. назад`;
+} else if (diffDays >= 30) {
+const months = Math.floor(diffDays / 30);
+timeString += `${months} мес. ${diffDays % 30} дн. назад`;
+} else if (diffDays > 0) {
+timeString += `${diffDays} дн. назад`;
+} else {
+const hours = Math.floor(diffTime / (1000 * 60 * 60));
+const mins = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+timeString += hours > 0 ? `${hours} ч. ${mins} мин. назад` : `${mins} мин. назад`;
+}
+document.getElementById(`time-${id}`).textContent = timeString;
+// Progress bar & countdown
+const progressWrapper = document.getElementById(`progressWrapper-${id}`);
+const progressEl = document.getElementById(`progress-${id}`);
+const progressText = document.getElementById(`progressText-${id}`);
+const countdownEl = document.getElementById(`countdown-${id}`);
+if (endDate && new Date(endDate + 'T00:00:00') > start) {
+const end = new Date(endDate + 'T00:00:00');
+const totalTime = end - start;
+const passedTime = now - start;
+const progress = Math.min((passedTime / totalTime) * 100, 100);
+const remaining = end - now;
+progressWrapper.style.display = 'block';
+progressEl.style.width = `${progress}%`;
+progressText.textContent = `Прогресс: ${progress.toFixed(1)}%`;
+// Progress colors
+progressEl.className = 'progress';
+if (progress >= 100) {
+progressEl.classList.add('complete');
+} else if (progress >= 80) {
+progressEl.classList.add('near-complete');
+}
+// Countdown
+if (remaining > 0) {
+const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+let countdown = `⏱️ Осталось: `;
+if (days > 0) countdown += `${days}д `;
+if (hours > 0 || days > 0) countdown += `${hours}ч `;
+countdown += `${mins}мин`;
+countdownEl.textContent = countdown;
+countdownEl.className = 'countdown';
+if (remaining < 3 * 24 * 60 * 60 * 1000) {
+countdownEl.classList.add('urgent');
+}
+tracker.classList.remove('expired');
+} else {
+countdownEl.textContent = '✅ Срок истёк';
+countdownEl.className = 'countdown expired';
+tracker.classList.add('expired');
+// Auto-reset for repeating trackers
+if (repeat !== 'none') {
+this.resetRepeatedTracker(id, repeat);
+}
+// Celebrate completion
+if (!tracker.dataset.celebrated) {
+this.celebrateCompletion(id);
+tracker.dataset.celebrated = 'true';
+}
+}
+} else {
+progressWrapper.style.display = 'none';
+countdownEl.textContent = '';
+tracker.classList.remove('expired');
+}
+},
+// Update all visible trackers
+updateAllTimers() {
+document.querySelectorAll('.tracker:not(.hidden)').forEach(tracker => {
+const id = tracker.id.split('-')[1];
+this.updateTracker(id);
+});
+},
+// Reset repeating tracker
+resetRepeatedTracker(id, repeat) {
+const startInput = document.getElementById(`start-${id}`);
+const endInput = document.getElementById(`endDate-${id}`);
+let newStart = new Date(startInput.value + 'T00:00:00');
+let newEnd = endInput.value ? new Date(endInput.value + 'T00:00:00') : null;
+switch(repeat) {
+case 'daily':
+newStart.setDate(newStart.getDate() + 1);
+if (newEnd) newEnd.setDate(newEnd.getDate() + 1);
+break;
+case 'weekly':
+newStart.setDate(newStart.getDate() + 7);
+if (newEnd) newEnd.setDate(newEnd.getDate() + 7);
+break;
+case 'monthly':
+newStart.setMonth(newStart.getMonth() + 1);
+if (newEnd) newEnd.setMonth(newEnd.getMonth() + 1);
+break;
+}
+startInput.value = newStart.toISOString().split('T')[0];
+if (newEnd) {
+endInput.value = newEnd.toISOString().split('T')[0];
+document.getElementById(`endOption-${id}`).value = 'custom';
+endInput.style.display = 'block';
+}
+// Reset celebration flag
+const tracker = document.getElementById(`tracker-${id}`);
+if (tracker) {
+delete tracker.dataset.celebrated;
+delete tracker.dataset.notified;
+}
+// ✅ ИСПРАВЛЕНО: Сохраняем после обновления
+this.updateTracker(id);
+this.saveTrackers();
+},
+// Celebrate with confetti
+celebrateCompletion(id) {
+const tracker = document.getElementById(`tracker-${id}`);
+if (!tracker) return;
+const rect = tracker.getBoundingClientRect();
+const x = (rect.left + rect.width / 2) / window.innerWidth;
+const y = (rect.top + rect.height / 2) / window.innerHeight;
+confetti({
+particleCount: 50,
+angle: 60,
+spread: 80,
+origin: { x, y },
+colors: ['#4CAF50', '#2196F3', '#FF9800']
+});
+confetti({
+particleCount: 50,
+angle: 120,
+spread: 80,
+origin: { x, y },
+colors: ['#4CAF50', '#2196F3', '#FF9800']
+});
+},
+// ===== FILTER & SORT =====
+filterTrackers(filter) {
+const searchValue = this.selectors.searchInput.value.toLowerCase();
+const trackers = document.querySelectorAll('.tracker');
+trackers.forEach(tracker => {
+const id = tracker.id.split('-')[1];
+const text = (document.getElementById(`text-${id}`)?.value ||
+document.getElementById(`text-display-${id}`)?.textContent || '').toLowerCase();
+const description = (document.getElementById(`description-${id}`)?.value ||
+document.getElementById(`description-display-${id}`)?.textContent || '').toLowerCase();
+const category = tracker.dataset.category;
+const endDate = document.getElementById(`endDate-${id}`)?.value;
+// ✅ ИСПРАВЛЕНО: Сравнение дат
+const isExpired = endDate && new Date(endDate + 'T00:00:00') < new Date();
+// Search match
+const matchesSearch = !searchValue || text.includes(searchValue) || description.includes(searchValue);
+// Filter match
+let matchesFilter = true;
+switch(filter) {
+case 'active':
+matchesFilter = !isExpired || !endDate;
+break;
+case 'expired':
+matchesFilter = isExpired;
+break;
+case 'work':
+matchesFilter = category === 'Рабочие';
+break;
+case 'personal':
+matchesFilter = category === 'Личные';
+break;
+}
+tracker.classList.toggle('hidden', !(matchesSearch && matchesFilter));
+});
+this.updateEmptyState();
+},
+sortTrackers(criteria) {
+if (criteria === 'manual') return;
+const trackers = Array.from(this.selectors.trackersList.children);
+trackers.sort((a, b) => {
+const idA = a.id.split('-')[1];
+const idB = b.id.split('-')[1];
+if (criteria === 'start') {
+const startA = new Date((document.getElementById(`start-${idA}`)?.value || '9999-12-31') + 'T00:00:00');
+const startB = new Date((document.getElementById(`start-${idB}`)?.value || '9999-12-31') + 'T00:00:00');
+return startA - startB;
+} else if (criteria === 'end') {
+const endA = new Date((document.getElementById(`endDate-${idA}`)?.value || '9999-12-31') + 'T00:00:00');
+const endB = new Date((document.getElementById(`endDate-${idB}`)?.value || '9999-12-31') + 'T00:00:00');
+return endA - endB;
+} else if (criteria === 'personal') {
+const catA = document.getElementById(`category-${idA}`)?.value === 'Личные' ? 0 : 1;
+const catB = document.getElementById(`category-${idB}`)?.value === 'Личные' ? 0 : 1;
+return catA - catB;
+} else if (criteria === 'work') {
+const catA = document.getElementById(`category-${idA}`)?.value === 'Рабочие' ? 0 : 1;
+const catB = document.getElementById(`category-${idB}`)?.value === 'Рабочие' ? 0 : 1;
+return catA - catB;
+}
+return 0;
+});
+trackers.forEach(tracker => this.selectors.trackersList.appendChild(tracker));
+},
+// ===== SORTABLE DRAG & DROP =====
+initSortable() {
+if (this.currentSort !== 'manual') return;
+// ✅ ИСПРАВЛЕНО: Правильная проверка и уничтожение экземпляра
+if (this.sortableInstance) {
+this.sortableInstance.destroy();
+this.sortableInstance = null;
+}
+this.sortableInstance = new Sortable(this.selectors.trackersList, {
+animation: 150,
+handle: '.tracker-header',
+draggable: '.tracker',
+ghostClass: 'dragging',
+onEnd: () => {
+this.saveTrackersOrder();
+this.showNotification('Порядок сохранён', 'success');
+}
+});
+},
+saveTrackersOrder() {
+const order = Array.from(this.selectors.trackersList.children)
+.map(el => parseInt(el.id.split('-')[1]));
+this.trackersOrder = order;
+localStorage.setItem('trackersOrder', JSON.stringify(order));
+},
+// ===== STORAGE =====
+saveTrackers() {
+const trackers = [];
+document.querySelectorAll('.tracker').forEach(tracker => {
+const id = tracker.id.split('-')[1];
+const textEl = document.getElementById(`text-${id}`);
+const text = textEl?.value || document.getElementById(`text-display-${id}`)?.textContent || '';
+trackers.push({
+id: parseInt(id),
+text: text.trim(),
+description: document.getElementById(`description-${id}`)?.value ||
+document.getElementById(`description-display-${id}`)?.textContent || '',
+start: document.getElementById(`start-${id}`)?.value || '',
+end: document.getElementById(`endOption-${id}`)?.value === 'custom' ?
+(document.getElementById(`endDate-${id}`)?.value || '') : '',
+category: document.getElementById(`category-${id}`)?.value || 'Без категории',
+repeat: document.getElementById(`repeat-${id}`)?.value || 'none',
+createdAt: tracker.dataset.createdAt || new Date().toISOString()
+});
+});
+localStorage.setItem('timeTrackers', JSON.stringify(trackers));
+},
+loadTrackers() {
+const saved = localStorage.getItem('timeTrackers');
+if (saved) {
+const trackers = JSON.parse(saved);
+trackers.forEach(data => {
+this.addTracker(data);
+if (data.id > this.trackerCount) {
+this.trackerCount = data.id;
+}
+});
+// Restore order if manual sort
+if (this.currentSort === 'manual' && this.trackersOrder.length) {
+this.trackersOrder.forEach(id => {
+const tracker = document.getElementById(`tracker-${id}`);
+if (tracker) {
+this.selectors.trackersList.appendChild(tracker);
+}
+});
+} else {
+this.sortTrackers(this.currentSort);
+}
+this.filterTrackers(this.currentFilter);
+} else {
+// Add demo tracker for first-time users
+this.addTracker({
+text: '🎉 Добро пожаловать!',
+description: 'Это ваш первый трекер. Нажмите "Редактировать" чтобы настроить.',
+start: new Date().toISOString().split('T')[0],
+category: 'Без категории'
+});
+}
+},
+// ===== STATS =====
+showStats() {
+const trackers = JSON.parse(localStorage.getItem('timeTrackers') || '[]');
+const now = new Date();
+const active = trackers.filter(t => !t.end || new Date(t.end + 'T00:00:00') > now).length;
+const expired = trackers.filter(t => t.end && new Date(t.end + 'T00:00:00') <= now).length;
+const total = trackers.length;
+// Calculate average duration
+const durations = trackers
+.filter(t => t.start && t.end)
+.map(t => {
+const diff = new Date(t.end + 'T00:00:00') - new Date(t.start + 'T00:00:00');
+return diff > 0 ? diff : 0;
+});
+const avgDays = durations.length > 0
+? (durations.reduce((a, b) => a + b, 0) / durations.length / (1000 * 60 * 60 * 24)).toFixed(1)
+: 0;
+// Update stats
+this.selectors.statActive.textContent = active;
+this.selectors.statExpired.textContent = expired;
+this.selectors.statTotal.textContent = total;
+this.selectors.statAvg.textContent = `${avgDays} дн`;
+// Update chart
+this.updateStatsChart(active, expired,
+trackers.filter(t => t.category === 'Рабочие').length,
+trackers.filter(t => t.category === 'Личные').length);
+this.showModal('statsModal');
+},
+updateStatsChart(active, expired, work, personal) {
+const ctx = this.selectors.statsChart.getContext('2d');
+if (this.statsChart) {
+this.statsChart.destroy();
+}
+// ✅ ИСПРАВЛЕНО: Получаем вычисленные значения CSS-переменных
+const styles = getComputedStyle(document.documentElement);
+this.statsChart = new Chart(ctx, {
+type: 'doughnut',
+data: {
+labels: ['Активные', 'Завершённые', 'Рабочие', 'Личные'],
+datasets: [{
+data: [active, expired, work, personal],
+backgroundColor: [
+styles.getPropertyValue('--tg-accent').trim(),
+styles.getPropertyValue('--tg-danger').trim(),
+styles.getPropertyValue('--tg-category-work').trim(),
+styles.getPropertyValue('--tg-category-personal').trim()
+],
+borderWidth: 0
+}]
+},
+options: {
+responsive: true,
+maintainAspectRatio: false,
+plugins: {
+legend: {
+position: 'bottom',
+labels: {
+color: styles.getPropertyValue('--tg-text-primary').trim(),
+padding: 15
+}
+}
+},
+cutout: '60%'
+}
+});
+},
+// ===== UTILITIES =====
+showModal(modalId) {
+document.getElementById(modalId).classList.add('active');
+document.body.style.overflow = 'hidden';
+},
+hideModal(modalId) {
+document.getElementById(modalId).classList.remove('active');
+document.body.style.overflow = '';
+},
+showNotification(message, type = 'success') {
+const notification = this.selectors.notification;
+const text = this.selectors.notificationText;
+const icon = notification.querySelector('i');
+// ✅ ИСПРАВЛЕНО: Очищаем предыдущий таймаут
+if (this.notificationTimeout) {
+clearTimeout(this.notificationTimeout);
+}
+// Update content
+text.textContent = message;
+notification.className = `notification ${type}`;
+// Update icon
+icon.className = type === 'success' ? 'fas fa-check-circle' :
+type === 'error' ? 'fas fa-exclamation-circle' :
+'fas fa-exclamation-triangle';
+// Show
+notification.classList.add('show');
+// Auto-hide
+this.notificationTimeout = setTimeout(() => {
+notification.classList.remove('show');
+this.notificationTimeout = null; // ✅ Очищаем ссылку
+}, 3000);
+},
+confirmDelete(id) {
+const tracker = document.getElementById(`tracker-${id}`);
+const name = document.getElementById(`text-display-${id}`)?.textContent ||
+document.getElementById(`text-${id}`)?.value || 'Этот трекер';
+document.getElementById('deleteTrackerName').textContent = name;
+document.getElementById('confirmDeleteBtn').onclick = () => {
+this.deleteTracker(id);
+this.hideModal('deleteModal');
+};
+this.showModal('deleteModal');
+},
+deleteTracker(id) {
+const tracker = document.getElementById(`tracker-${id}`);
+if (tracker) {
+// Animate out
+tracker.style.opacity = '0';
+tracker.style.transform = 'translateX(-20px)';
+setTimeout(() => {
+tracker.remove();
+delete this.collapsedState[id];
+localStorage.setItem('collapsedState', JSON.stringify(this.collapsedState));
+this.saveTrackers();
+this.updateEmptyState();
+this.showNotification('Трекер удалён', 'success');
+}, 200);
+}
+},
+updateEmptyState() {
+const visible = document.querySelectorAll('.tracker:not(.hidden)').length;
+this.selectors.emptyState.classList.toggle('hidden', visible > 0);
+},
+applyFontSize() {
+document.documentElement.style.setProperty('--tg-font-base', `${this.fontSize}px`);
+this.selectors.fontPreview.style.fontSize = `${this.fontSize}px`;
+// ✅ ИСПРАВЛЕНО: Правильный класс .time-display вместо .text-display
+document.querySelectorAll('input, select, textarea, button, label, .time-display, .detail-display, .tracker-meta, .countdown').forEach(el => {
+el.style.fontSize = `${this.fontSize}px`;
+});
+},
+escapeHtml(text) {
+const div = document.createElement('div');
+div.textContent = text;
+return div.innerHTML;
+},
+// ===== EXPORT/IMPORT =====
+exportData() {
+const data = {
+trackers: JSON.parse(localStorage.getItem('timeTrackers') || '[]'),
+settings: {
+sortPreference: this.currentSort,
+fontSize: this.fontSize,
+collapsedState: this.collapsedState,
+trackersOrder: this.trackersOrder
+},
+exportedAt: new Date().toISOString(),
+version: '2.0'
+};
+const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = `trackers-backup-${new Date().toISOString().split('T')[0]}.json`;
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(url);
+this.showNotification('Данные экспортированы', 'success');
+},
+importData(file) {
+const reader = new FileReader();
+reader.onload = (e) => {
+try {
+const data = JSON.parse(e.target.result);
+if (data.trackers && Array.isArray(data.trackers)) {
+// Clear existing
+localStorage.removeItem('timeTrackers');
+this.selectors.trackersList.innerHTML = '';
+this.trackerCount = 0;
+// Import trackers
+data.trackers.forEach(tracker => {
+this.addTracker(tracker);
+if (tracker.id > this.trackerCount) {
+this.trackerCount = tracker.id;
+}
+});
+// Import settings
+if (data.settings) {
+if (data.settings.sortPreference) {
+this.currentSort = data.settings.sortPreference;
+localStorage.setItem('sortPreference', this.currentSort);
+}
+if (data.settings.fontSize) {
+this.fontSize = data.settings.fontSize;
+localStorage.setItem('fontSize', this.fontSize);
+this.applyFontSize();
+}
+if (data.settings.collapsedState) {
+this.collapsedState = data.settings.collapsedState;
+localStorage.setItem('collapsedState', JSON.stringify(this.collapsedState));
+}
+}
+this.sortTrackers(this.currentSort);
+this.filterTrackers(this.currentFilter);
+this.updateEmptyState();
+this.showNotification('Данные импортированы', 'success');
+// Refresh page to apply all changes
+setTimeout(() => location.reload(), 500);
+} else {
+throw new Error('Неверный формат файла');
+}
+} catch (err) {
+console.error('Import error:', err);
+this.showNotification('Ошибка импорта: ' + err.message, 'error');
+}
+};
+reader.readAsText(file);
+},
+// ===== DEADLINE CHECKS =====
+checkDeadlines() {
+const trackers = document.querySelectorAll('.tracker');
+const now = new Date();
+now.setHours(0, 0, 0, 0);
+trackers.forEach(tracker => {
+const id = tracker.id.split('-')[1];
+const endDate = document.getElementById(`endDate-${id}`)?.value;
+const text = document.getElementById(`text-display-${id}`)?.textContent || '';
+if (endDate) {
+const end = new Date(endDate + 'T00:00:00');
+const diffDays = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+// Notify 3 days before deadline
+if (diffDays > 0 && diffDays <= 3 && !tracker.dataset.notified) {
+if (window.Telegram?.WebApp) {
+Telegram.WebApp.showPopup({
+title: '⏰ Напоминание',
+message: `До дедлайна "${text}" осталось ${diffDays} дн.`,
+buttons: [{ type: 'ok' }]
+});
+} else {
+this.showNotification(`⏰ "${text}": осталось ${diffDays} дн.`, 'warning');
+}
+tracker.dataset.notified = 'true';
+}
+}
+});
+}
+};
+// Initialize app when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+App.init();
+});
+</script>
 </body>
 </html>
